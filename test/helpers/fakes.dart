@@ -1,5 +1,6 @@
 import 'package:route/models/attachment.dart';
 import 'package:route/models/chat_message.dart';
+import 'package:route/models/openrouter_model.dart';
 import 'package:route/models/usage.dart';
 import 'package:route/services/conversation_store.dart';
 import 'package:route/services/openrouter_service.dart';
@@ -59,6 +60,14 @@ class FakeOpenRouterService extends OpenRouterService {
   String? lastApiKey;
   bool? lastImageOutput;
   List<ChatMessage>? lastMessages;
+  List<OpenRouterModel> models = const [];
+  Object? modelsError;
+
+  @override
+  Future<List<OpenRouterModel>> fetchModels(String apiKey) async {
+    if (modelsError != null) throw modelsError!;
+    return models;
+  }
 
   @override
   Stream<String> streamChat({

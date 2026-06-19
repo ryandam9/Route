@@ -137,6 +137,23 @@ void main() {
     expect(settings.userFontScale, SettingsProvider.minFontScale);
   });
 
+  test('favorite models persist and toggle', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final settings = SettingsProvider(FakeSecureStorageService(), prefs);
+    await waitUntil(() => !settings.loading);
+
+    expect(settings.favoriteModels, isEmpty);
+
+    await settings.toggleFavoriteModel('openai/gpt-4o');
+    expect(settings.isFavoriteModel('openai/gpt-4o'), isTrue);
+    expect(prefs.getStringList('favorite_models'), contains('openai/gpt-4o'));
+
+    await settings.toggleFavoriteModel('openai/gpt-4o');
+    expect(settings.isFavoriteModel('openai/gpt-4o'), isFalse);
+    expect(prefs.getStringList('favorite_models'), isNot(contains('openai/gpt-4o')));
+  });
+
   test('notifies listeners on change', () async {
     final settings = await buildLoadedSettings(apiKey: null);
     var notified = 0;
