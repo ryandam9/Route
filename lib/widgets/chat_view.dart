@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/usage_provider.dart';
+import '../screens/debug_screen.dart';
 import '../screens/usage_screen.dart';
 import 'chat_input.dart';
 import 'message_bubble.dart';
@@ -85,6 +86,13 @@ class _Header extends StatelessWidget {
               ),
             const SizedBox(width: 8),
             const _UsageButton(),
+            IconButton(
+              icon: const Icon(Icons.bug_report_outlined),
+              tooltip: 'Debug',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const DebugScreen()),
+              ),
+            ),
             IconButton(
               icon: const Icon(Icons.add_comment_outlined),
               tooltip: 'New chat',

@@ -6,6 +6,7 @@ import 'package:http/testing.dart';
 import 'package:route/models/attachment.dart';
 import 'package:route/models/chat_message.dart';
 import 'package:route/models/usage.dart';
+import 'package:route/services/debug_log.dart';
 import 'package:route/services/openrouter_service.dart';
 
 void main() {
@@ -97,6 +98,46 @@ void main() {
           .toList();
 
       expect(chunks, ['Hel', 'lo']);
+    });
+
+    test('records request, frames and keep-alives in the debug log', () async {
+      final client = MockClient.streaming((request, bodyStream) async {
+        return sse([
+          'data: {"choices":[{"delta":{"content":"Hi"}}]}',
+          ': OPENROUTER PROCESSING',
+          'data: [DONE]',
+        ]);
+      });
+      final debug = DebugLog();
+
+      await OpenRouterService(client: client, debug: debug)
+          .streamChat(apiKey: 'k', model: 'm', messages: []).toList();
+
+      final kinds = debug.entries.map((e) => e.kind).toList();
+      expect(kinds, contains(DebugKind.request));
+      expect(kinds, contains(DebugKind.response));
+      expect(kinds, contains(DebugKind.stream)); // the chunk
+      expect(kinds, contains(DebugKind.info)); // keep-alive + done
+      // The request entry carries the JSON body.
+      final req = debug.entries.firstWhere((e) => e.kind == DebugKind.request);
+      expect(req.isJson, isTrue);
+    });
+
+    test('logs an error entry on non-200', () async {
+      final client = MockClient.streaming((request, bodyStream) async {
+        return http.StreamedResponse(
+          Stream.value(utf8.encode('{"error":{"message":"nope"}}')),
+          400,
+        );
+      });
+      final debug = DebugLog();
+
+      await expectLater(
+        OpenRouterService(client: client, debug: debug)
+            .streamChat(apiKey: 'k', model: 'm', messages: []).toList(),
+        throwsA(isA<OpenRouterException>()),
+      );
+      expect(debug.entries.any((e) => e.kind == DebugKind.error), isTrue);
     });
 
     test('skips malformed frames without aborting', () async {
