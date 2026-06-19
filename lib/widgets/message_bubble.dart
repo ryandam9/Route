@@ -197,6 +197,16 @@ class MessageBubble extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: scheme.outlineVariant),
         ),
+        // Blockquotes otherwise default to a light-blue box, which leaves
+        // light text unreadable in dark theme. Use the same on-surface scheme
+        // as code, with a primary accent strip on the left.
+        blockquote: base.blockquote?.copyWith(color: scheme.onSurface),
+        blockquoteDecoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          border: Border(
+            left: BorderSide(color: scheme.primary, width: 4),
+          ),
+        ),
       ),
     );
   }

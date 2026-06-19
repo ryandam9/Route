@@ -91,6 +91,20 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('renders a blockquote without a layout error', (tester) async {
+    await tester.pumpWidget(_wrap(
+      ChatMessage(
+        id: '1',
+        role: MessageRole.assistant,
+        content: '> Prompt: a beautiful pelican riding a bicycle',
+      ),
+    ));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(MarkdownBody), findsOneWidget);
+  });
+
   testWidgets('renders an image attachment inline', (tester) async {
     // 1x1 transparent PNG.
     const pngBase64 =
