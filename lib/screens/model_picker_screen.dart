@@ -56,8 +56,10 @@ class _ModelPickerScreenState extends State<ModelPickerScreen> {
 
   late Future<List<OpenRouterModel>> _future;
   String _query = '';
-  _Filter _filter = _Filter.all;
+  // Active filters combine (AND). Empty == "All".
+  final Set<_Filter> _filters = <_Filter>{};
   _Sort _sort = _Sort.name;
+  bool _asc = true;
   _ViewMode _view = _ViewMode.grid;
   OpenRouterModel? _preview;
 
@@ -121,24 +123,26 @@ class _ModelPickerScreenState extends State<ModelPickerScreen> {
   ) {
     final q = _query.toLowerCase();
     final list = models.where((m) {
-      if (!_filter.matches(m)) return false;
+      if (_filters.isNotEmpty && !_filters.every((f) => f.matches(m))) {
+        return false;
+      }
       if (q.isEmpty) return true;
       return m.id.toLowerCase().contains(q) ||
           m.name.toLowerCase().contains(q) ||
           m.vendor.toLowerCase().contains(q);
     }).toList();
 
-    int byName(OpenRouterModel a, OpenRouterModel b) =>
-        a.name.toLowerCase().compareTo(b.name.toLowerCase());
-    list.sort((a, b) => switch (_sort) {
-          _Sort.name => byName(a, b),
+    // Ascending comparator for the active field; flipped when descending.
+    int ascending(OpenRouterModel a, OpenRouterModel b) => switch (_sort) {
+          _Sort.name =>
+            a.name.toLowerCase().compareTo(b.name.toLowerCase()),
           _Sort.context =>
-            (b.contextLength ?? 0).compareTo(a.contextLength ?? 0),
-          _Sort.price =>
-            (a.promptPrice ?? 0).compareTo(b.promptPrice ?? 0),
-          _Sort.newest => (b.created ?? DateTime(0))
-              .compareTo(a.created ?? DateTime(0)),
-        });
+            (a.contextLength ?? 0).compareTo(b.contextLength ?? 0),
+          _Sort.price => (a.promptPrice ?? 0).compareTo(b.promptPrice ?? 0),
+          _Sort.newest => (a.created ?? DateTime(0))
+              .compareTo(b.created ?? DateTime(0)),
+        };
+    list.sort((a, b) => _asc ? ascending(a, b) : ascending(b, a));
 
     // Bookmarked models surface first, keeping their relative order.
     final favs = list.where((m) => favorites.contains(m.id)).toList();
@@ -147,6 +151,16 @@ class _ModelPickerScreenState extends State<ModelPickerScreen> {
   }
 
   void _select(OpenRouterModel model) => Navigator.of(context).pop(model);
+
+  void _toggleFilter(_Filter f) {
+    setState(() {
+      if (f == _Filter.all) {
+        _filters.clear();
+      } else if (!_filters.add(f)) {
+        _filters.remove(f);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,11 +215,10 @@ class _ModelPickerScreenState extends State<ModelPickerScreen> {
                 onView: (v) => setState(() => _view = v),
                 sort: _sort,
                 onSort: (v) => setState(() => _sort = v),
+                ascending: _asc,
+                onToggleDirection: () => setState(() => _asc = !_asc),
               ),
-              _FilterBar(
-                active: _filter,
-                onSelected: (f) => setState(() => _filter = f),
-              ),
+              _FilterBar(active: _filters, onToggled: _toggleFilter),
               const Divider(height: 1),
               Expanded(
                 child: Row(
@@ -260,6 +273,8 @@ class _Toolbar extends StatelessWidget {
     required this.onView,
     required this.sort,
     required this.onSort,
+    required this.ascending,
+    required this.onToggleDirection,
   });
 
   final String query;
@@ -268,6 +283,8 @@ class _Toolbar extends StatelessWidget {
   final ValueChanged<_ViewMode> onView;
   final _Sort sort;
   final ValueChanged<_Sort> onSort;
+  final bool ascending;
+  final VoidCallback onToggleDirection;
 
   @override
   Widget build(BuildContext context) {
@@ -322,8 +339,15 @@ class _Toolbar extends StatelessWidget {
                   DropdownMenuItem(
                       value: _Sort.context, child: Text('Context')),
                   DropdownMenuItem(value: _Sort.price, child: Text('Price')),
-                  DropdownMenuItem(value: _Sort.newest, child: Text('Newest')),
+                  DropdownMenuItem(
+                      value: _Sort.newest, child: Text('Release date')),
                 ],
+              ),
+              IconButton(
+                icon: Icon(
+                    ascending ? Icons.arrow_upward : Icons.arrow_downward),
+                tooltip: ascending ? 'Ascending' : 'Descending',
+                onPressed: onToggleDirection,
               ),
             ],
           ),
@@ -334,10 +358,11 @@ class _Toolbar extends StatelessWidget {
 }
 
 class _FilterBar extends StatelessWidget {
-  const _FilterBar({required this.active, required this.onSelected});
+  const _FilterBar({required this.active, required this.onToggled});
 
-  final _Filter active;
-  final ValueChanged<_Filter> onSelected;
+  /// Active filters (empty == "All"). Filters combine with AND.
+  final Set<_Filter> active;
+  final ValueChanged<_Filter> onToggled;
 
   @override
   Widget build(BuildContext context) {
@@ -350,8 +375,10 @@ class _FilterBar extends StatelessWidget {
             FilterChip(
               avatar: Icon(f.icon, size: 18),
               label: Text(f.label),
-              selected: f == active,
-              onSelected: (_) => onSelected(f),
+              // "All" is selected when no specific filter is active; the rest
+              // toggle independently and combine.
+              selected: f == _Filter.all ? active.isEmpty : active.contains(f),
+              onSelected: (_) => onToggled(f),
             ),
             const SizedBox(width: 8),
           ],
@@ -492,7 +519,7 @@ class _ModelCard extends StatelessWidget {
       spacing: 6,
       runSpacing: 6,
       children: [
-        for (final t in _capabilityTags(model)) _Tag(t),
+        for (final c in _capabilities(model)) _CapabilityChip(c),
       ],
     );
 
@@ -513,22 +540,44 @@ class _ModelCard extends StatelessWidget {
       ],
     );
 
+    final dark = theme.brightness == Brightness.dark;
+    final accent = _VendorAvatar.colorFor(model.vendor);
+    // Unselected cards carry a faint provider-tinted wash so providers are
+    // visually distinct and the card lifts off the page background.
+    final BoxDecoration decoration = selected
+        ? BoxDecoration(
+            color: scheme.primaryContainer.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: scheme.primary, width: 1.5),
+          )
+        : BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color.alphaBlend(
+                  accent.withValues(alpha: dark ? 0.16 : 0.10),
+                  scheme.surfaceContainerHighest,
+                ),
+                scheme.surfaceContainerHighest,
+              ],
+              stops: const [0, 0.7],
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: accent.withValues(alpha: 0.35)),
+          );
+
     return Material(
-      color: selected ? scheme.primaryContainer.withValues(alpha: 0.35) : scheme.surfaceContainerHighest,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? scheme.primary : scheme.outlineVariant,
-              width: selected ? 1.5 : 1,
-            ),
-          ),
-          child: dense
+        child: Ink(
+          decoration: decoration,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: dense
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -572,27 +621,47 @@ class _ModelCard extends StatelessWidget {
                     stats,
                   ],
                 ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _Tag extends StatelessWidget {
-  const _Tag(this.label);
-  final String label;
+/// A capability label paired with a semantic accent colour.
+typedef _Cap = ({String label, Color color});
+
+/// A colour-coded capability chip that stays legible in both themes: the
+/// accent is lightened on dark backgrounds and darkened on light ones.
+class _CapabilityChip extends StatelessWidget {
+  const _CapabilityChip(this.cap);
+  final _Cap cap;
+
+  static Color _legible(Color seed, Brightness b) {
+    final hsl = HSLColor.fromColor(seed);
+    final l = b == Brightness.dark
+        ? (hsl.lightness + 0.28).clamp(0.0, 1.0)
+        : (hsl.lightness - 0.12).clamp(0.0, 1.0);
+    return hsl.withLightness(l).toColor();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final fg = _legible(cap.color, theme.brightness);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLowest,
+        color: cap.color.withValues(alpha: dark ? 0.22 : 0.12),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        border: Border.all(color: fg.withValues(alpha: 0.45)),
       ),
-      child: Text(label, style: theme.textTheme.labelSmall),
+      child: Text(
+        cap.label,
+        style: theme.textTheme.labelSmall
+            ?.copyWith(color: fg, fontWeight: FontWeight.w600),
+      ),
     );
   }
 }
@@ -610,11 +679,13 @@ class _StatBlock extends StatelessWidget {
       children: [
         Text(label,
             style: theme.textTheme.labelSmall
-                ?.copyWith(color: theme.colorScheme.outline)),
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         const SizedBox(height: 2),
         Text(value,
-            style: theme.textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.w700)),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
+            )),
       ],
     );
   }
@@ -660,9 +731,13 @@ class _VendorAvatar extends StatelessWidget {
     Color(0xFF3949AB),
   ];
 
+  /// Stable accent colour for a vendor, shared by the avatar and card wash.
+  static Color colorFor(String vendor) =>
+      _palette[vendor.hashCode.abs() % _palette.length];
+
   @override
   Widget build(BuildContext context) {
-    final color = _palette[vendor.hashCode.abs() % _palette.length];
+    final color = colorFor(vendor);
     final letter = vendor.isEmpty ? '?' : vendor[0].toUpperCase();
     return Container(
       width: size,
@@ -752,7 +827,9 @@ class _DetailPanel extends StatelessWidget {
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: [for (final t in _capabilityTags(m)) _Tag(t)],
+                  children: [
+                    for (final c in _capabilities(m)) _CapabilityChip(c)
+                  ],
                 ),
                 const SizedBox(height: 20),
                 Text('Key details',
@@ -785,7 +862,7 @@ class _DetailPanel extends StatelessWidget {
                       ? DateFormat.yMMMd().format(m.created!)
                       : '—',
                 ),
-                if (_capabilityTags(m).isNotEmpty) ...[
+                if (_capabilities(m).isNotEmpty) ...[
                   const SizedBox(height: 20),
                   Text('Capabilities',
                       style: theme.textTheme.titleSmall
@@ -794,7 +871,9 @@ class _DetailPanel extends StatelessWidget {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: [for (final t in _capabilityTags(m)) _Tag(t)],
+                    children: [
+                      for (final c in _capabilities(m)) _CapabilityChip(c)
+                    ],
                   ),
                 ],
                 if (m.description != null &&
@@ -858,14 +937,15 @@ class _DetailPanel extends StatelessWidget {
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
 
-List<String> _capabilityTags(OpenRouterModel m) => [
-      'Text gen',
-      if (m.contextLength != null) '${_compactTokens(m.contextLength)} context',
-      if (m.supportsTools) 'Tools',
-      if (m.supportsJsonOutput) 'JSON',
-      if (m.supportsReasoning) 'Reasoning',
-      if (m.supportsImageInput) 'Vision',
-      if (m.supportsImageOutput) 'Image out',
+List<_Cap> _capabilities(OpenRouterModel m) => [
+      (label: 'Text gen', color: const Color(0xFF7E8AA0)),
+      if (m.contextLength != null)
+        (label: '${_compactTokens(m.contextLength)} context', color: const Color(0xFF2196F3)),
+      if (m.supportsTools) (label: 'Tools', color: const Color(0xFF2E9E5B)),
+      if (m.supportsJsonOutput) (label: 'JSON', color: const Color(0xFFE08A00)),
+      if (m.supportsReasoning) (label: 'Reasoning', color: const Color(0xFF9C5BE0)),
+      if (m.supportsImageInput) (label: 'Vision', color: const Color(0xFF12A4A4)),
+      if (m.supportsImageOutput) (label: 'Image out', color: const Color(0xFFE0518A)),
     ];
 
 String _compactTokens(int? n) {
