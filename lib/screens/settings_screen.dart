@@ -307,26 +307,20 @@ class _FontRow extends StatelessWidget {
           ),
           // A dialog picker (rather than a dropdown overlay) so all options are
           // visible and scrollable regardless of where the row sits on screen.
+          // The button shrink-wraps its content (mainAxisSize.min) — no flex
+          // children, since it sits under an unbounded-width button child.
           OutlinedButton(
             onPressed: () async {
               final picked = await _showFontPicker(context, label, value);
               if (picked != null) onChanged(picked);
             },
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 150),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: Text(
-                      value.label,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: value.family),
-                    ),
-                  ),
-                  const Icon(Icons.expand_more, size: 18),
-                ],
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(value.label, style: TextStyle(fontFamily: value.family)),
+                const SizedBox(width: 8),
+                const Icon(Icons.expand_more, size: 18),
+              ],
             ),
           ),
         ],
