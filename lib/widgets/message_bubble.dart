@@ -4,8 +4,11 @@ import 'package:auris/auris_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:provider/provider.dart';
 
+import '../models/app_font.dart';
 import '../models/chat_message.dart';
+import '../providers/settings_provider.dart';
 import 'attachment_view.dart';
 import 'save_button.dart';
 
@@ -94,16 +97,24 @@ class MessageBubble extends StatelessWidget {
 
   Widget _text(BuildContext context) {
     final theme = Theme.of(context);
+    final settings = context.watch<SettingsProvider>();
     if (_isUser) {
       return SelectableText(
         message.content,
-        style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
+        style: TextStyle(
+          color: theme.colorScheme.onPrimaryContainer,
+          fontFamily: settings.userFont.family,
+        ),
       );
     }
+    // Apply the model-output font to the whole Markdown stylesheet.
+    final mdTheme = theme.copyWith(
+      textTheme: theme.textTheme.apply(fontFamily: settings.modelFont.family),
+    );
     return MarkdownBody(
       data: message.content,
       selectable: true,
-      styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+      styleSheet: MarkdownStyleSheet.fromTheme(mdTheme).copyWith(
         code: theme.textTheme.bodyMedium?.copyWith(
           fontFamily: 'monospace',
           backgroundColor: theme.colorScheme.surface,

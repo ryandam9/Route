@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:route/models/app_font.dart';
 import 'package:route/providers/settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -94,6 +95,23 @@ void main() {
     await settings.setAnimateModelIndicator(true);
     expect(settings.animateModelIndicator, isTrue);
     expect(prefs.getBool('animate_model_indicator'), isTrue);
+  });
+
+  test('font settings default sensibly and persist', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final settings = SettingsProvider(FakeSecureStorageService(), prefs);
+    await waitUntil(() => !settings.loading);
+
+    // Heading keeps the sci-fi flavor; body text defaults to readable system.
+    expect(settings.headingFont, AppFont.rajdhani);
+    expect(settings.userFont, AppFont.system);
+    expect(settings.modelFont, AppFont.system);
+    expect(settings.settingsFont, AppFont.system);
+
+    await settings.setModelFont(AppFont.exoTwo);
+    expect(settings.modelFont, AppFont.exoTwo);
+    expect(prefs.getInt('font_model'), AppFont.exoTwo.index);
   });
 
   test('notifies listeners on change', () async {

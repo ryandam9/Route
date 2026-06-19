@@ -2,6 +2,7 @@ import 'package:auris/auris_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/app_font.dart';
 import '../models/openrouter_model.dart';
 import '../providers/settings_provider.dart';
 import '../services/download_service.dart';
@@ -47,7 +48,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
+      // Apply the chosen settings font to this whole screen.
+      body: Theme(
+        data: theme.copyWith(
+          textTheme: theme.textTheme.apply(fontFamily: settings.settingsFont.family),
+        ),
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _SetupProgress(hasApiKey: settings.hasApiKey),
@@ -228,7 +234,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+
+          // ── Fonts ─────────────────────────────────────────────────────
+          AurisPanel(
+            title: 'Fonts',
+            code: '05',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _FontRow(
+                  label: 'Heading',
+                  value: settings.headingFont,
+                  onChanged: (f) =>
+                      context.read<SettingsProvider>().setHeadingFont(f),
+                ),
+                _FontRow(
+                  label: 'Your text',
+                  value: settings.userFont,
+                  onChanged: (f) =>
+                      context.read<SettingsProvider>().setUserFont(f),
+                ),
+                _FontRow(
+                  label: 'Model output',
+                  value: settings.modelFont,
+                  onChanged: (f) =>
+                      context.read<SettingsProvider>().setModelFont(f),
+                ),
+                _FontRow(
+                  label: 'Settings',
+                  value: settings.settingsFont,
+                  onChanged: (f) =>
+                      context.read<SettingsProvider>().setSettingsFont(f),
+                ),
+              ],
+            ),
+          ),
         ],
+        ),
       ),
     );
   }
@@ -238,6 +281,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ThemeMode.light => 'LIGHT',
         ThemeMode.dark => 'DARK',
       };
+}
+
+/// A labelled font dropdown for the Fonts panel.
+class _FontRow extends StatelessWidget {
+  const _FontRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final AppFont value;
+  final ValueChanged<AppFont> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label.toUpperCase(),
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+          ),
+          AurisSelect<AppFont>(
+            value: value,
+            width: 190,
+            options: [
+              for (final f in AppFont.values)
+                AurisSelectOption(value: f, label: f.label),
+            ],
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// A three-step setup progress strip using [AurisStepIndicator].

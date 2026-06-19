@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/app_font.dart';
 import '../services/secure_storage_service.dart';
 
 /// Holds user settings: the API key, the default model for new chats, and the
@@ -17,12 +18,20 @@ class SettingsProvider extends ChangeNotifier {
   static const _kThemeMode = 'theme_mode';
   static const _kDownloadDir = 'download_dir';
   static const _kAnimateModelIndicator = 'animate_model_indicator';
+  static const _kHeadingFont = 'font_heading';
+  static const _kUserFont = 'font_user';
+  static const _kModelFont = 'font_model';
+  static const _kSettingsFont = 'font_settings';
 
   String? _apiKey;
   String _defaultModel = 'openai/gpt-4o-mini';
   ThemeMode _themeMode = ThemeMode.system;
   String? _downloadDir;
   bool _animateModelIndicator = false;
+  AppFont _headingFont = AppFont.rajdhani;
+  AppFont _userFont = AppFont.system;
+  AppFont _modelFont = AppFont.system;
+  AppFont _settingsFont = AppFont.system;
   bool _loading = true;
 
   bool get loading => _loading;
@@ -34,6 +43,12 @@ class SettingsProvider extends ChangeNotifier {
   /// Whether the model indicator in the chat header pulses while streaming.
   /// Off by default so it doesn't blink distractingly.
   bool get animateModelIndicator => _animateModelIndicator;
+
+  /// Fonts for headings, user text, model output, and the settings screen.
+  AppFont get headingFont => _headingFont;
+  AppFont get userFont => _userFont;
+  AppFont get modelFont => _modelFont;
+  AppFont get settingsFont => _settingsFont;
 
   /// Default directory new downloads are written to (desktop). When null, a
   /// Save-As dialog is shown instead.
@@ -49,6 +64,11 @@ class SettingsProvider extends ChangeNotifier {
     _downloadDir = _prefs.getString(_kDownloadDir);
     _animateModelIndicator =
         _prefs.getBool(_kAnimateModelIndicator) ?? false;
+    _headingFont =
+        AppFontX.fromIndex(_prefs.getInt(_kHeadingFont) ?? AppFont.rajdhani.index);
+    _userFont = AppFontX.fromIndex(_prefs.getInt(_kUserFont));
+    _modelFont = AppFontX.fromIndex(_prefs.getInt(_kModelFont));
+    _settingsFont = AppFontX.fromIndex(_prefs.getInt(_kSettingsFont));
     final themeIndex = _prefs.getInt(_kThemeMode);
     if (themeIndex != null &&
         themeIndex >= 0 &&
@@ -94,6 +114,30 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setAnimateModelIndicator(bool value) async {
     _animateModelIndicator = value;
     await _prefs.setBool(_kAnimateModelIndicator, value);
+    notifyListeners();
+  }
+
+  Future<void> setHeadingFont(AppFont f) async {
+    _headingFont = f;
+    await _prefs.setInt(_kHeadingFont, f.index);
+    notifyListeners();
+  }
+
+  Future<void> setUserFont(AppFont f) async {
+    _userFont = f;
+    await _prefs.setInt(_kUserFont, f.index);
+    notifyListeners();
+  }
+
+  Future<void> setModelFont(AppFont f) async {
+    _modelFont = f;
+    await _prefs.setInt(_kModelFont, f.index);
+    notifyListeners();
+  }
+
+  Future<void> setSettingsFont(AppFont f) async {
+    _settingsFont = f;
+    await _prefs.setInt(_kSettingsFont, f.index);
     notifyListeners();
   }
 
