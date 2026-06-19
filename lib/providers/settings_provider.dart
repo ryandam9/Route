@@ -24,6 +24,7 @@ class SettingsProvider extends ChangeNotifier {
   static const _kSettingsFont = 'font_settings';
   static const _kUserFontScale = 'font_scale_user';
   static const _kModelFontScale = 'font_scale_model';
+  static const _kFavoriteModels = 'favorite_models';
 
   /// Allowed text-size multipliers for chat messages.
   static const double minFontScale = 0.85;
@@ -42,6 +43,7 @@ class SettingsProvider extends ChangeNotifier {
   // Text-size multipliers for chat messages (1.0 == default size).
   double _userFontScale = 1.0;
   double _modelFontScale = 1.0;
+  Set<String> _favoriteModels = {};
   bool _loading = true;
 
   bool get loading => _loading;
@@ -65,6 +67,11 @@ class SettingsProvider extends ChangeNotifier {
   double get userFontScale => _userFontScale;
   double get modelFontScale => _modelFontScale;
 
+  /// Model ids the user has bookmarked. Bookmarked models surface first in the
+  /// model picker.
+  Set<String> get favoriteModels => _favoriteModels;
+  bool isFavoriteModel(String id) => _favoriteModels.contains(id);
+
   /// Default directory new downloads are written to (desktop). When null, a
   /// Save-As dialog is shown instead.
   String? get downloadDir => _downloadDir;
@@ -87,6 +94,8 @@ class SettingsProvider extends ChangeNotifier {
         AppFontX.fromIndex(_prefs.getInt(_kSettingsFont) ?? def.index);
     _userFontScale = _clampScale(_prefs.getDouble(_kUserFontScale) ?? 1.0);
     _modelFontScale = _clampScale(_prefs.getDouble(_kModelFontScale) ?? 1.0);
+    _favoriteModels =
+        (_prefs.getStringList(_kFavoriteModels) ?? const []).toSet();
     final themeIndex = _prefs.getInt(_kThemeMode);
     if (themeIndex != null &&
         themeIndex >= 0 &&
@@ -172,6 +181,15 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   double _clampScale(double v) => v.clamp(minFontScale, maxFontScale);
+
+  Future<void> toggleFavoriteModel(String id) async {
+    // Copy so listeners that captured the old set see a distinct value.
+    final next = Set<String>.from(_favoriteModels);
+    if (!next.remove(id)) next.add(id);
+    _favoriteModels = next;
+    await _prefs.setStringList(_kFavoriteModels, next.toList());
+    notifyListeners();
+  }
 
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;

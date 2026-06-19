@@ -68,6 +68,41 @@ void main() {
       expect(model.vendor, 'other');
     });
 
+    test('parses max output, created date and capability params', () {
+      final model = OpenRouterModel.fromJson({
+        'id': 'x/y',
+        'name': 'Y',
+        'created': 1713744000, // 2024-04-22 (UTC)
+        'top_provider': {'max_completion_tokens': 16384},
+        'supported_parameters': ['tools', 'response_format', 'reasoning'],
+        'architecture': {
+          'input_modalities': ['text', 'image'],
+        },
+      });
+
+      expect(model.maxOutputTokens, 16384);
+      expect(model.created, isNotNull);
+      expect(model.created!.year, 2024);
+      expect(model.supportsTools, isTrue);
+      expect(model.supportsJsonOutput, isTrue);
+      expect(model.supportsReasoning, isTrue);
+      expect(model.isMultimodal, isTrue);
+    });
+
+    test('per-million price helpers and capability defaults', () {
+      final model = OpenRouterModel.fromJson({
+        'id': 'x/y',
+        'name': 'Y',
+        'pricing': {'prompt': '0.000004', 'completion': '0.000012'},
+      });
+      expect(model.promptPricePerM, closeTo(4.0, 1e-9));
+      expect(model.completionPricePerM, closeTo(12.0, 1e-9));
+      expect(model.supportsTools, isFalse);
+      expect(model.supportsJsonOutput, isFalse);
+      expect(model.isMultimodal, isFalse);
+      expect(model.isNewerThan(const Duration(days: 1)), isFalse);
+    });
+
     test('handles numeric pricing values', () {
       final model = OpenRouterModel.fromJson({
         'id': 'x/y',
