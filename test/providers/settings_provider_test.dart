@@ -52,6 +52,43 @@ void main() {
     expect(settings.hasApiKey, isFalse);
   });
 
+  test('seeds the API key from the environment when none is stored', () async {
+    final settings = await buildLoadedSettings(
+      apiKey: null,
+      environment: const {'OPENROUTER_API_KEY': '  env-key  '},
+    );
+    expect(settings.apiKey, 'env-key'); // trimmed
+    expect(settings.hasApiKey, isTrue);
+    expect(settings.apiKeyFromEnvironment, isTrue);
+    expect(settings.apiKeyEnvVarName, 'OPENROUTER_API_KEY');
+  });
+
+  test('a stored API key takes precedence over the environment', () async {
+    final settings = await buildLoadedSettings(
+      apiKey: 'stored-key',
+      environment: const {'OPENROUTER_API_KEY': 'env-key'},
+    );
+    expect(settings.apiKey, 'stored-key');
+    expect(settings.apiKeyFromEnvironment, isFalse);
+  });
+
+  test('saving overrides the environment key; clearing reverts to it',
+      () async {
+    final settings = await buildLoadedSettings(
+      apiKey: null,
+      environment: const {'OPENROUTER_API_KEY': 'env-key'},
+    );
+    expect(settings.apiKeyFromEnvironment, isTrue);
+
+    await settings.setApiKey('manual-key');
+    expect(settings.apiKey, 'manual-key');
+    expect(settings.apiKeyFromEnvironment, isFalse);
+
+    await settings.clearApiKey();
+    expect(settings.apiKey, 'env-key');
+    expect(settings.apiKeyFromEnvironment, isTrue);
+  });
+
   test('setDefaultModel and setThemeMode persist to prefs', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();

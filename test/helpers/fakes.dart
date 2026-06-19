@@ -101,14 +101,18 @@ class FakeOpenRouterService extends OpenRouterService {
 }
 
 /// Builds a fully-loaded [SettingsProvider] backed by fakes/mock prefs.
+///
+/// [environment] is empty by default so tests don't accidentally pick up an
+/// `OPENROUTER_API_KEY` set on the host machine.
 Future<SettingsProvider> buildLoadedSettings({
   String? apiKey = 'test-key',
   String defaultModel = 'test/model',
+  Map<String, String> environment = const {},
 }) async {
   SharedPreferences.setMockInitialValues({'default_model': defaultModel});
   final prefs = await SharedPreferences.getInstance();
   final secure = FakeSecureStorageService(initial: apiKey);
-  final settings = SettingsProvider(secure, prefs);
+  final settings = SettingsProvider(secure, prefs, environment: environment);
   await _waitUntil(() => !settings.loading);
   return settings;
 }
