@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:route/models/chat_message.dart';
+import 'package:route/models/usage.dart';
 import 'package:route/providers/chat_provider.dart';
+import 'package:route/providers/usage_provider.dart';
 import 'package:route/widgets/chat_input.dart';
 
 import '../helpers/fakes.dart';
@@ -22,10 +24,12 @@ void main() {
     late ChatProvider chat;
     await tester.runAsync(() async {
       final settings = await buildLoadedSettings();
+      final svc = service ?? FakeOpenRouterService(chunks: ['hi back']);
       chat = ChatProvider(
-        service: service ?? FakeOpenRouterService(chunks: ['hi back']),
+        service: svc,
         store: FakeConversationStore(),
         settings: settings,
+        usage: UsageProvider(service: svc, settings: settings),
       );
       await waitUntil(() => !chat.loading);
     });
@@ -105,6 +109,7 @@ class _NeverEndingService extends FakeOpenRouterService {
     required String apiKey,
     required String model,
     required List<ChatMessage> messages,
+    void Function(TokenUsage usage)? onUsage,
   }) async* {
     yield 'partial';
     await Completer<void>().future;

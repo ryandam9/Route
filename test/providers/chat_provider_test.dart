@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:route/models/chat_message.dart';
+import 'package:route/models/usage.dart';
 import 'package:route/providers/chat_provider.dart';
+import 'package:route/providers/usage_provider.dart';
 import 'package:route/services/openrouter_service.dart';
 
 import '../helpers/fakes.dart';
@@ -12,12 +14,15 @@ void main() {
     FakeOpenRouterService? service,
     FakeConversationStore? store,
     String? apiKey = 'test-key',
+    UsageProvider? usage,
   }) async {
     final settings = await buildLoadedSettings(apiKey: apiKey);
+    final svc = service ?? FakeOpenRouterService();
     final chat = ChatProvider(
-      service: service ?? FakeOpenRouterService(),
+      service: svc,
       store: store ?? FakeConversationStore(),
       settings: settings,
+      usage: usage ?? UsageProvider(service: svc, settings: settings),
     );
     await waitUntil(() => !chat.loading);
     return chat;
@@ -108,6 +113,32 @@ void main() {
       await chat.sendMessage(long);
       expect(chat.current!.title.length, lessThanOrEqualTo(41));
       expect(chat.current!.title, endsWith('…'));
+    });
+
+    test('records reported usage against the active model', () async {
+      final settings = await buildLoadedSettings();
+      final service = FakeOpenRouterService(chunks: ['ok'])
+        ..usage = const TokenUsage(
+          promptTokens: 10,
+          completionTokens: 5,
+          cost: 0.002,
+        );
+      final usage = UsageProvider(service: service, settings: settings);
+      final chat = ChatProvider(
+        service: service,
+        store: FakeConversationStore(),
+        settings: settings,
+        usage: usage,
+      );
+      await waitUntil(() => !chat.loading);
+
+      await chat.sendMessage('hi');
+
+      expect(usage.promptTokens, 10);
+      expect(usage.completionTokens, 5);
+      expect(usage.cost, 0.002);
+      expect(usage.requests, 1);
+      expect(usage.byModel.single.modelId, 'test/model');
     });
 
     test('excludes the assistant placeholder from request history', () async {

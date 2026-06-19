@@ -8,6 +8,7 @@ import '../models/conversation.dart';
 import '../services/conversation_store.dart';
 import '../services/openrouter_service.dart';
 import 'settings_provider.dart';
+import 'usage_provider.dart';
 
 /// Owns the list of conversations and drives sending/streaming of messages.
 class ChatProvider extends ChangeNotifier {
@@ -15,15 +16,18 @@ class ChatProvider extends ChangeNotifier {
     required OpenRouterService service,
     required ConversationStore store,
     required SettingsProvider settings,
+    required UsageProvider usage,
   })  : _service = service,
         _store = store,
-        _settings = settings {
+        _settings = settings,
+        _usage = usage {
     _init();
   }
 
   final OpenRouterService _service;
   final ConversationStore _store;
   final SettingsProvider _settings;
+  final UsageProvider _usage;
   final _uuid = const Uuid();
 
   List<Conversation> _conversations = [];
@@ -140,7 +144,12 @@ class ChatProvider extends ChangeNotifier {
 
     final completer = Completer<void>();
     _sub = _service
-        .streamChat(apiKey: apiKey, model: convo.modelId, messages: history)
+        .streamChat(
+          apiKey: apiKey,
+          model: convo.modelId,
+          messages: history,
+          onUsage: (usage) => _usage.record(convo.modelId, usage),
+        )
         .listen(
       (delta) {
         assistantMsg.content += delta;
