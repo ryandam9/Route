@@ -37,6 +37,9 @@ void main() {
         _model('a/alpha', 'Alpha', context: 200000, prompt: 0.000002,
             params: ['tools']),
         _model('b/beta', 'Beta', context: 8000, prompt: 0),
+        // Free, with tools and high context — matches several filters at once.
+        _model('c/gamma', 'Gamma', context: 150000, prompt: 0,
+            params: ['tools']),
       ];
   });
 
@@ -77,6 +80,47 @@ void main() {
 
     expect(find.text('Beta'), findsWidgets); // free
     expect(find.text('Alpha'), findsNothing); // paid, filtered out
+  });
+
+  testWidgets('filters combine (AND) and toggle independently',
+      (tester) async {
+    await pump(tester, size: const Size(760, 1000)); // narrow: no detail panel
+
+    Future<void> tapChip(String label) async {
+      final chip = find.widgetWithText(FilterChip, label);
+      await tester.ensureVisible(chip);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+    }
+
+    await tapChip('Free');
+    expect(find.text('Beta'), findsWidgets);
+    expect(find.text('Gamma'), findsWidgets);
+    expect(find.text('Alpha'), findsNothing); // paid
+
+    // Adding Tools narrows further: Beta (free, no tools) drops out.
+    await tapChip('Tools');
+    expect(find.text('Gamma'), findsWidgets);
+    expect(find.text('Beta'), findsNothing);
+
+    // Both chips stay selected (multi-select, not radio).
+    expect(tester.widget<FilterChip>(find.widgetWithText(FilterChip, 'Free')).selected, isTrue);
+    expect(tester.widget<FilterChip>(find.widgetWithText(FilterChip, 'Tools')).selected, isTrue);
+
+    // Toggling Tools off restores the Free-only result.
+    await tapChip('Tools');
+    expect(find.text('Beta'), findsWidgets);
+  });
+
+  testWidgets('sort direction toggle flips order', (tester) async {
+    await pump(tester, size: const Size(760, 1000));
+
+    // Default: ascending (arrow up shown).
+    expect(find.byIcon(Icons.arrow_upward), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.arrow_upward));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.arrow_downward), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('bookmark toggles a favorite in settings', (tester) async {
