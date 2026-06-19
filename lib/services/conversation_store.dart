@@ -10,12 +10,18 @@ import '../models/conversation.dart';
 /// A flat JSON file keeps the app dependency-free of native databases and
 /// works uniformly across Android and desktop targets.
 class ConversationStore {
+  ConversationStore({Directory? directory}) : _overrideDir = directory;
+
+  /// Optional directory override, primarily for tests. When null the platform
+  /// application-support directory is used.
+  final Directory? _overrideDir;
+
   static const _fileName = 'conversations.json';
   File? _cachedFile;
 
   Future<File> _file() async {
     if (_cachedFile != null) return _cachedFile!;
-    final dir = await getApplicationSupportDirectory();
+    final dir = _overrideDir ?? await getApplicationSupportDirectory();
     final file = File('${dir.path}${Platform.pathSeparator}$_fileName');
     if (!await file.exists()) {
       await file.create(recursive: true);
