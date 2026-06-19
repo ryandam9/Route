@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,12 +9,36 @@ import '../services/secure_storage_service.dart';
 /// Holds user settings: the API key, the default model for new chats, and the
 /// app theme mode. The API key lives in secure storage; the rest in prefs.
 class SettingsProvider extends ChangeNotifier {
-  SettingsProvider(this._secureStorage, this._prefs) {
+  SettingsProvider(
+    this._secureStorage,
+    this._prefs, {
+    Map<String, String>? environment,
+  }) : _environment = environment ?? _desktopEnvironment() {
     _load();
   }
 
   final SecureStorageService _secureStorage;
   final SharedPreferences _prefs;
+
+  /// Process environment variables, consulted on desktop to seed the API key.
+  final Map<String, String> _environment;
+
+  /// Environment variable read at startup (desktop) to seed the API key when
+  /// none is stored on the device.
+  static const apiKeyEnvVar = 'OPENROUTER_API_KEY';
+
+  /// Environment variables are only meaningful on desktop platforms; on mobile
+  /// there's nothing useful to read.
+  static Map<String, String> _desktopEnvironment() {
+    try {
+      if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+        return Platform.environment;
+      }
+    } catch (_) {
+      // Platform may be unavailable (e.g. web); fall through.
+    }
+    return const {};
+  }
 
   static const _kDefaultModel = 'default_model';
   static const _kThemeMode = 'theme_mode';
@@ -50,10 +76,19 @@ class SettingsProvider extends ChangeNotifier {
   double _modelFontScale = 1.0;
   Set<String> _favoriteModels = {};
   bool _loading = true;
+  bool _apiKeyFromEnv = false;
 
   bool get loading => _loading;
   String? get apiKey => _apiKey;
   bool get hasApiKey => _apiKey != null && _apiKey!.isNotEmpty;
+
+  /// Whether the active API key was seeded from [apiKeyEnvVar] rather than saved
+  /// on the device. Such a key lives only for this session — it's re-read from
+  /// the environment on each launch and is never written to secure storage.
+  bool get apiKeyFromEnvironment => _apiKeyFromEnv;
+
+  /// Name of the environment variable consulted for the API key.
+  String get apiKeyEnvVarName => apiKeyEnvVar;
   String get defaultModel => _defaultModel;
   ThemeMode get themeMode => _themeMode;
 
@@ -95,6 +130,8 @@ class SettingsProvider extends ChangeNotifier {
     } catch (_) {
       _apiKey = null;
     }
+    // No key saved on the device? On desktop, fall back to the environment.
+    if (!hasApiKey) _applyEnvFallback();
     _defaultModel = _prefs.getString(_kDefaultModel) ?? _defaultModel;
     _downloadDir = _prefs.getString(_kDownloadDir);
     _animateModelIndicator =
@@ -134,19 +171,39 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   Future<void> setApiKey(String key) async {
-    _apiKey = key.trim();
-    if (hasApiKey) {
-      await _secureStorage.writeApiKey(_apiKey!);
+    final trimmed = key.trim();
+    if (trimmed.isNotEmpty) {
+      // An explicitly entered key is stored on the device and overrides any
+      // environment value.
+      _apiKey = trimmed;
+      _apiKeyFromEnv = false;
+      await _secureStorage.writeApiKey(trimmed);
     } else {
+      // Saving an empty key clears the stored one; fall back to the env value.
       await _secureStorage.deleteApiKey();
+      _apiKey = null;
+      _apiKeyFromEnv = false;
+      _applyEnvFallback();
     }
     notifyListeners();
   }
 
   Future<void> clearApiKey() async {
-    _apiKey = null;
     await _secureStorage.deleteApiKey();
+    _apiKey = null;
+    _apiKeyFromEnv = false;
+    // Reverting a stored key exposes the environment value again, if present.
+    _applyEnvFallback();
     notifyListeners();
+  }
+
+  /// Seeds [_apiKey] from the environment when nothing is stored on the device.
+  void _applyEnvFallback() {
+    final envKey = _environment[apiKeyEnvVar]?.trim();
+    if (envKey != null && envKey.isNotEmpty) {
+      _apiKey = envKey;
+      _apiKeyFromEnv = true;
+    }
   }
 
   Future<void> setDefaultModel(String model) async {

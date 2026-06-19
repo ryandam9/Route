@@ -177,18 +177,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _apiKey(SettingsProvider settings) {
     final theme = Theme.of(context);
+    final fromEnv = settings.apiKeyFromEnvironment;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         LabelValueRow(
           label: 'Status',
           trailing: StatusChip(
-            settings.hasApiKey ? 'Configured' : 'Missing',
+            fromEnv
+                ? 'From environment'
+                : settings.hasApiKey
+                    ? 'Configured'
+                    : 'Missing',
             color: settings.hasApiKey
                 ? theme.colorScheme.primary
                 : theme.colorScheme.error,
           ),
         ),
+        if (fromEnv) ...[
+          const SizedBox(height: 12),
+          InfoBanner(
+            title: 'Loaded from environment',
+            message: 'This key was read from the '
+                '${settings.apiKeyEnvVarName} environment variable for this '
+                'session. Edit and Save to store a key on this device instead; '
+                'Clear reverts to the environment value.',
+          ),
+        ],
         const SizedBox(height: 12),
         TextField(
           controller: _keyController,
