@@ -191,11 +191,13 @@ class _SessionDetailScreenState extends State<_SessionDetailScreen> {
                       Expanded(child: detail),
                     ],
                   )
-                : ListView(
+                : Column(
+                    // Stacked on phones: each section scrolls independently so
+                    // the inner ListViews always have bounded height.
                     children: [
-                      detail,
+                      Expanded(flex: 3, child: detail),
                       const Divider(height: 1),
-                      SizedBox(height: 360, child: timeline),
+                      Expanded(flex: 2, child: timeline),
                     ],
                   ),
           ),
@@ -276,9 +278,14 @@ class _Stat extends StatelessWidget {
         Text(label.toUpperCase(),
             style: theme.textTheme.labelSmall
                 ?.copyWith(color: theme.colorScheme.outline)),
-        Text(value,
-            style: theme.textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.w700)),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 240),
+          child: Text(value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+        ),
       ],
     );
   }
@@ -703,9 +710,14 @@ class _MetaPill extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: theme.colorScheme.outline),
         const SizedBox(width: 4),
-        Text(text,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 240),
+          child: Text(text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ),
       ],
     );
   }

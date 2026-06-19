@@ -212,14 +212,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ?.copyWith(color: theme.colorScheme.outline),
         ),
         const SizedBox(height: 12),
-        Row(
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
           children: [
             FilledButton.icon(
               onPressed: _save,
               icon: const Icon(Icons.save_outlined),
               label: const Text('Save'),
             ),
-            const SizedBox(width: 12),
             if (settings.hasApiKey)
               OutlinedButton.icon(
                 onPressed: () async {
@@ -331,7 +332,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ?.copyWith(color: theme.colorScheme.outline),
         ),
         const SizedBox(height: 12),
-        Row(
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
           children: [
             FilledButton.tonalIcon(
               onPressed: () async {
@@ -343,7 +346,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: const Icon(Icons.folder_open),
               label: const Text('Choose folder'),
             ),
-            const SizedBox(width: 12),
             if (settings.downloadDir != null)
               OutlinedButton.icon(
                 onPressed: () =>
