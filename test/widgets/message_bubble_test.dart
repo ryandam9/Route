@@ -3,18 +3,35 @@ import 'package:auris/auris_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:route/models/attachment.dart';
 import 'package:route/models/chat_message.dart';
+import 'package:route/providers/settings_provider.dart';
 import 'package:route/widgets/message_bubble.dart';
 
-// Auris HUD widgets read their scheme from the AurisTheme extension, so the
-// bubble must be hosted under an AurisTheme-skinned MaterialApp.
+import '../helpers/fakes.dart';
+
+late SettingsProvider _settings;
+
+// Auris HUD widgets read their scheme from the AurisTheme extension, and the
+// bubble reads fonts from SettingsProvider, so provide both.
 Widget _wrap(ChatMessage message) => MaterialApp(
       theme: AurisTheme.dark(),
-      home: Scaffold(body: MessageBubble(message: message)),
+      home: Scaffold(
+        body: ChangeNotifierProvider<SettingsProvider>.value(
+          value: _settings,
+          child: MessageBubble(message: message),
+        ),
+      ),
     );
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    _settings = await buildLoadedSettings();
+  });
+
   testWidgets('renders a user message with a YOU badge in a container',
       (tester) async {
     await tester.pumpWidget(_wrap(
