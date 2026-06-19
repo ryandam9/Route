@@ -6,6 +6,7 @@ import '../models/attachment.dart';
 import '../models/chat_message.dart';
 import '../models/openrouter_model.dart';
 import '../models/usage.dart';
+import 'debug_log.dart';
 
 /// Thrown when the OpenRouter API returns an error or a request fails.
 class OpenRouterException implements Exception {
@@ -22,10 +23,16 @@ class OpenRouterException implements Exception {
 ///
 /// See https://openrouter.ai/docs for the full API reference.
 class OpenRouterService {
-  OpenRouterService({http.Client? client}) : _client = client ?? http.Client();
+  OpenRouterService({http.Client? client, DebugLog? debug})
+      : _client = client ?? http.Client(),
+        _debug = debug;
 
   static const String _baseUrl = 'https://openrouter.ai/api/v1';
   final http.Client _client;
+  final DebugLog? _debug;
+
+  void _log(DebugKind kind, String title, {String? detail}) =>
+      _debug?.add(kind, title, detail: detail);
 
   Map<String, String> _headers(String apiKey, {bool json = true}) => {
         'Authorization': 'Bearer $apiKey',
@@ -38,13 +45,17 @@ class OpenRouterService {
   /// Fetches the catalogue of available models, sorted by display name.
   Future<List<OpenRouterModel>> fetchModels(String apiKey) async {
     final uri = Uri.parse('$_baseUrl/models');
+    _log(DebugKind.request, 'GET /models');
     final http.Response resp;
     try {
       resp = await _client.get(uri, headers: _headers(apiKey, json: false));
     } catch (e) {
+      _log(DebugKind.error, 'GET /models · network error', detail: '$e');
       throw OpenRouterException('Network error: $e');
     }
     if (resp.statusCode != 200) {
+      _log(DebugKind.error, 'GET /models · HTTP ${resp.statusCode}',
+          detail: resp.body);
       throw OpenRouterException(
         _extractError(resp.body) ?? 'Failed to load models',
         statusCode: resp.statusCode,
@@ -52,6 +63,7 @@ class OpenRouterService {
     }
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
     final list = data['data'] as List<dynamic>? ?? [];
+    _log(DebugKind.response, 'GET /models · 200 · ${list.length} models');
     return list
         .map((e) => OpenRouterModel.fromJson(e as Map<String, dynamic>))
         .toList()
@@ -64,18 +76,23 @@ class OpenRouterService {
   /// can receive a 403, which surfaces as an [OpenRouterException].
   Future<CreditBalance> fetchCredits(String apiKey) async {
     final uri = Uri.parse('$_baseUrl/credits');
+    _log(DebugKind.request, 'GET /credits');
     final http.Response resp;
     try {
       resp = await _client.get(uri, headers: _headers(apiKey, json: false));
     } catch (e) {
+      _log(DebugKind.error, 'GET /credits · network error', detail: '$e');
       throw OpenRouterException('Network error: $e');
     }
     if (resp.statusCode != 200) {
+      _log(DebugKind.error, 'GET /credits · HTTP ${resp.statusCode}',
+          detail: resp.body);
       throw OpenRouterException(
         _extractError(resp.body) ?? 'Failed to load credits',
         statusCode: resp.statusCode,
       );
     }
+    _log(DebugKind.response, 'GET /credits · 200', detail: resp.body);
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
     return CreditBalance.fromJson(data['data'] as Map<String, dynamic>? ?? {});
   }
@@ -105,6 +122,9 @@ class OpenRouterService {
             messages.map((m) => {'role': m.role.wireName, 'content': _content(m)}).toList(),
       });
 
+    _log(DebugKind.request, 'POST /chat/completions · $model',
+        detail: request.body);
+
     // Generated images can be repeated across the delta and the final message;
     // track what we've emitted so callers see each once.
     final seenImages = <String>{};
@@ -114,27 +134,42 @@ class OpenRouterService {
     try {
       streamed = await _client.send(request);
     } catch (e) {
+      _log(DebugKind.error, 'POST /chat/completions · network error',
+          detail: '$e');
       throw OpenRouterException('Network error: $e');
     }
 
     if (streamed.statusCode != 200) {
       final body = await streamed.stream.bytesToString();
+      _log(DebugKind.error,
+          'POST /chat/completions · HTTP ${streamed.statusCode}',
+          detail: body);
       throw OpenRouterException(
         _extractError(body) ?? 'Request failed',
         statusCode: streamed.statusCode,
       );
     }
 
+    _log(DebugKind.response, 'POST /chat/completions · 200 · streaming…');
+
     final lines =
         streamed.stream.transform(utf8.decoder).transform(const LineSplitter());
 
     await for (final line in lines) {
+      if (line.isEmpty) continue;
       // OpenRouter sends SSE comment keep-alives (": OPENROUTER PROCESSING")
-      // and blank lines between events; ignore everything but data frames.
-      if (!line.startsWith('data:')) continue;
+      // between events; surface them so users see progress while waiting.
+      if (!line.startsWith('data:')) {
+        _log(DebugKind.info, 'keep-alive', detail: line);
+        continue;
+      }
       final data = line.substring(5).trim();
       if (data.isEmpty) continue;
-      if (data == '[DONE]') break;
+      if (data == '[DONE]') {
+        _log(DebugKind.info, 'stream done ([DONE])');
+        break;
+      }
+      _log(DebugKind.stream, 'stream chunk', detail: data);
       try {
         final json = jsonDecode(data) as Map<String, dynamic>;
         final usage = json['usage'];

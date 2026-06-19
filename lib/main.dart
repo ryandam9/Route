@@ -7,6 +7,7 @@ import 'providers/chat_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/usage_provider.dart';
 import 'services/conversation_store.dart';
+import 'services/debug_log.dart';
 import 'services/openrouter_service.dart';
 import 'services/secure_storage_service.dart';
 
@@ -15,7 +16,8 @@ Future<void> main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final settings = SettingsProvider(SecureStorageService(), prefs);
-  final service = OpenRouterService();
+  final debug = DebugLog();
+  final service = OpenRouterService(debug: debug);
   final store = ConversationStore();
   final usage = UsageProvider(service: service, settings: settings);
 
@@ -24,6 +26,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider<SettingsProvider>.value(value: settings),
         Provider<OpenRouterService>.value(value: service),
+        ChangeNotifierProvider<DebugLog>.value(value: debug),
         ChangeNotifierProvider<UsageProvider>.value(value: usage),
         ChangeNotifierProvider<ChatProvider>(
           create: (_) => ChatProvider(
