@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:route/models/chat_message.dart';
+import 'package:route/models/usage.dart';
 import 'package:route/services/openrouter_service.dart';
 
 void main() {
@@ -127,6 +128,68 @@ void main() {
         throwsA(isA<OpenRouterException>()
             .having((e) => e.statusCode, 'statusCode', 429)
             .having((e) => e.message, 'message', 'rate limited')),
+      );
+    });
+
+    test('reports usage from the final chunk via onUsage', () async {
+      final client = MockClient.streaming((request, bodyStream) async {
+        return sse([
+          'data: {"choices":[{"delta":{"content":"hi"}}]}',
+          'data: {"choices":[],"usage":{"prompt_tokens":12,'
+              '"completion_tokens":3,"cost":0.0005}}',
+          'data: [DONE]',
+        ]);
+      });
+
+      TokenUsage? captured;
+      final chunks = await OpenRouterService(client: client)
+          .streamChat(
+            apiKey: 'k',
+            model: 'm',
+            messages: [],
+            onUsage: (u) => captured = u,
+          )
+          .toList();
+
+      expect(chunks, ['hi']);
+      expect(captured, isNotNull);
+      expect(captured!.promptTokens, 12);
+      expect(captured!.completionTokens, 3);
+      expect(captured!.cost, 0.0005);
+    });
+  });
+
+  group('OpenRouterService.fetchCredits', () {
+    test('parses the balance', () async {
+      final client = MockClient((request) async {
+        expect(request.url.path, endsWith('/credits'));
+        return http.Response(
+          jsonEncode({
+            'data': {'total_credits': 10, 'total_usage': 4}
+          }),
+          200,
+        );
+      });
+
+      final credits = await OpenRouterService(client: client).fetchCredits('k');
+
+      expect(credits.totalCredits, 10);
+      expect(credits.totalUsage, 4);
+      expect(credits.remaining, 6);
+    });
+
+    test('throws on non-200 (e.g. key without credit access)', () async {
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({'error': {'message': 'forbidden'}}),
+          403,
+        );
+      });
+
+      expect(
+        () => OpenRouterService(client: client).fetchCredits('k'),
+        throwsA(isA<OpenRouterException>()
+            .having((e) => e.statusCode, 'statusCode', 403)),
       );
     });
   });

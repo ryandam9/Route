@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/chat_message.dart';
 import '../models/openrouter_model.dart';
+import '../models/usage.dart';
 
 /// Thrown when the OpenRouter API returns an error or a request fails.
 class OpenRouterException implements Exception {
@@ -56,13 +57,38 @@ class OpenRouterService {
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 
+  /// Fetches the account credit balance from `GET /api/v1/credits`.
+  ///
+  /// Note: this endpoint may require a privileged key; a plain inference key
+  /// can receive a 403, which surfaces as an [OpenRouterException].
+  Future<CreditBalance> fetchCredits(String apiKey) async {
+    final uri = Uri.parse('$_baseUrl/credits');
+    final http.Response resp;
+    try {
+      resp = await _client.get(uri, headers: _headers(apiKey, json: false));
+    } catch (e) {
+      throw OpenRouterException('Network error: $e');
+    }
+    if (resp.statusCode != 200) {
+      throw OpenRouterException(
+        _extractError(resp.body) ?? 'Failed to load credits',
+        statusCode: resp.statusCode,
+      );
+    }
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    return CreditBalance.fromJson(data['data'] as Map<String, dynamic>? ?? {});
+  }
+
   /// Streams assistant token deltas for a chat completion request.
   ///
   /// Each yielded string is an incremental chunk of the assistant's reply.
+  /// When OpenRouter reports usage (in the final chunk), [onUsage] is invoked
+  /// once with the token counts and cost for the request.
   Stream<String> streamChat({
     required String apiKey,
     required String model,
     required List<ChatMessage> messages,
+    void Function(TokenUsage usage)? onUsage,
   }) async* {
     final uri = Uri.parse('$_baseUrl/chat/completions');
     final request = http.Request('POST', uri)
@@ -102,6 +128,10 @@ class OpenRouterService {
       if (data == '[DONE]') break;
       try {
         final json = jsonDecode(data) as Map<String, dynamic>;
+        final usage = json['usage'];
+        if (usage is Map<String, dynamic>) {
+          onUsage?.call(TokenUsage.fromJson(usage));
+        }
         final choices = json['choices'] as List<dynamic>?;
         if (choices == null || choices.isEmpty) continue;
         final delta = (choices.first as Map<String, dynamic>)['delta']

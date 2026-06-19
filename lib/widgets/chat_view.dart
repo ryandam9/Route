@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../providers/chat_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/usage_provider.dart';
+import '../screens/usage_screen.dart';
 import 'chat_input.dart';
 import 'message_bubble.dart';
 import 'model_selector.dart';
@@ -76,6 +78,7 @@ class _Header extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+            const _UsageButton(),
             IconButton(
               icon: const Icon(Icons.add_comment_outlined),
               tooltip: 'New chat',
@@ -84,6 +87,33 @@ class _Header extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Header action that opens the usage screen, showing the running session
+/// cost once any requests have been made.
+class _UsageButton extends StatelessWidget {
+  const _UsageButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final usage = context.watch<UsageProvider>();
+    void open() => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const UsageScreen()),
+        );
+
+    if (usage.isEmpty) {
+      return IconButton(
+        icon: const Icon(Icons.insights_outlined),
+        tooltip: 'Usage',
+        onPressed: open,
+      );
+    }
+    return TextButton.icon(
+      onPressed: open,
+      icon: const Icon(Icons.insights_outlined, size: 18),
+      label: Text('\$${usage.cost.toStringAsFixed(4)}'),
     );
   }
 }

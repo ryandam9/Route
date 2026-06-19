@@ -1,4 +1,5 @@
 import 'package:route/models/chat_message.dart';
+import 'package:route/models/usage.dart';
 import 'package:route/services/conversation_store.dart';
 import 'package:route/services/openrouter_service.dart';
 import 'package:route/services/secure_storage_service.dart';
@@ -43,12 +44,15 @@ class FakeConversationStore extends ConversationStore {
 }
 
 /// Scriptable [OpenRouterService]: emits [chunks] or throws [errorToThrow],
-/// and records the last request arguments.
+/// optionally reports [usage], and records the last request arguments.
 class FakeOpenRouterService extends OpenRouterService {
   FakeOpenRouterService({this.chunks = const ['Hello', ' ', 'world']});
 
   List<String> chunks;
   Object? errorToThrow;
+  TokenUsage? usage;
+  CreditBalance? credits;
+  Object? creditsError;
   String? lastModel;
   String? lastApiKey;
   List<ChatMessage>? lastMessages;
@@ -58,6 +62,7 @@ class FakeOpenRouterService extends OpenRouterService {
     required String apiKey,
     required String model,
     required List<ChatMessage> messages,
+    void Function(TokenUsage usage)? onUsage,
   }) async* {
     lastApiKey = apiKey;
     lastModel = model;
@@ -66,6 +71,13 @@ class FakeOpenRouterService extends OpenRouterService {
     for (final chunk in chunks) {
       yield chunk;
     }
+    if (usage != null) onUsage?.call(usage!);
+  }
+
+  @override
+  Future<CreditBalance> fetchCredits(String apiKey) async {
+    if (creditsError != null) throw creditsError!;
+    return credits ?? const CreditBalance(totalCredits: 0, totalUsage: 0);
   }
 }
 
