@@ -4,6 +4,7 @@ import 'package:auris/auris_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/app_font.dart';
@@ -33,10 +34,21 @@ class MessageBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: align,
         children: [
-          AurisBadge(
-            _isUser ? 'YOU' : 'ASSISTANT',
-            variant:
-                _isUser ? AurisBadgeVariant.gold : AurisBadgeVariant.amber,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AurisBadge(
+                _isUser ? 'YOU' : 'ASSISTANT',
+                variant:
+                    _isUser ? AurisBadgeVariant.gold : AurisBadgeVariant.amber,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                DateFormat('MMM d · HH:mm').format(message.createdAt),
+                style: theme.textTheme.labelSmall
+                    ?.copyWith(color: theme.colorScheme.outline),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           ConstrainedBox(

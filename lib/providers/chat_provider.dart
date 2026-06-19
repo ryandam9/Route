@@ -38,6 +38,12 @@ class ChatProvider extends ChangeNotifier {
   String? _error;
   StreamSubscription<String>? _sub;
 
+  // Coalesces rapid streaming deltas into at most ~16 UI updates/second so the
+  // Markdown body isn't re-parsed on every single token.
+  Timer? _streamThrottle;
+  bool _streamDirty = false;
+  static const _streamInterval = Duration(milliseconds: 60);
+
   List<Conversation> get conversations => List.unmodifiable(_conversations);
   Conversation? get current => _current;
   bool get loading => _loading;
@@ -49,6 +55,30 @@ class ChatProvider extends ChangeNotifier {
     _conversations.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     if (_conversations.isNotEmpty) _current = _conversations.first;
     _loading = false;
+    notifyListeners();
+  }
+
+  /// Notifies listeners at most once per [_streamInterval] during streaming.
+  void _notifyStreaming() {
+    if (_streamThrottle != null) {
+      _streamDirty = true;
+      return;
+    }
+    notifyListeners();
+    _streamThrottle = Timer(_streamInterval, () {
+      _streamThrottle = null;
+      if (_streamDirty) {
+        _streamDirty = false;
+        _notifyStreaming();
+      }
+    });
+  }
+
+  /// Cancels throttling and emits a final, immediate update.
+  void _endStreaming() {
+    _streamThrottle?.cancel();
+    _streamThrottle = null;
+    _streamDirty = false;
     notifyListeners();
   }
 
@@ -170,7 +200,7 @@ class ChatProvider extends ChangeNotifier {
         .listen(
       (delta) {
         assistantMsg.content += delta;
-        notifyListeners();
+        _notifyStreaming();
       },
       onError: (Object e) {
         assistantMsg
@@ -206,14 +236,14 @@ class ChatProvider extends ChangeNotifier {
       }
     }
     _isResponding = false;
-    notifyListeners();
+    _endStreaming();
     _persist();
   }
 
   void _finish(Conversation convo) {
     _isResponding = false;
     convo.updatedAt = DateTime.now();
-    notifyListeners();
+    _endStreaming();
     _persist();
   }
 
@@ -226,6 +256,7 @@ class ChatProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _streamThrottle?.cancel();
     _sub?.cancel();
     super.dispose();
   }
