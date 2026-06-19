@@ -43,6 +43,14 @@ void main() {
       expect(DownloadService.textForSave(raw).mimeType, 'image/svg+xml');
     });
 
+    test('extracts the SVG from prose + a fenced block, dropping both', () {
+      const raw = 'Here is an SVG illustration of a pelican. Save the code:\n\n'
+          '```xml\n<svg width="600"><rect/></svg>\n```\n\nEnjoy!';
+      final r = DownloadService.textForSave(raw);
+      expect(r.mimeType, 'image/svg+xml');
+      expect(r.text, '<svg width="600"><rect/></svg>');
+    });
+
     test('keeps ordinary replies as markdown', () {
       const raw = '# Title\n\nSome **text**.';
       final r = DownloadService.textForSave(raw);

@@ -77,15 +77,19 @@ class DownloadService {
   /// If the reply is (or is wholly wrapped in a single fenced code block of)
   /// **SVG** markup, the fences are stripped and it is saved as `image/svg+xml`
   /// (a `.svg` file). Otherwise the original text is kept as Markdown.
+  /// Decides how an assistant text reply should be saved.
+  ///
+  /// If the reply contains **SVG** markup anywhere (e.g. inside a `` ```xml ``
+  /// fence, surrounded by prose), the `<svg>…</svg>` is extracted — stripping
+  /// the prose and code fences — and saved as `image/svg+xml` (a `.svg` file).
+  /// Otherwise the original text is kept as Markdown.
   static ({String text, String mimeType}) textForSave(String raw) {
-    final trimmed = raw.trim();
-    final fence = RegExp(
-      r'^```[ \t]*[A-Za-z0-9+.\-]*[ \t]*\r?\n([\s\S]*?)\r?\n```$',
-    ).firstMatch(trimmed);
-    final inner = (fence != null ? fence.group(1)! : trimmed).trim();
-    if (RegExp(r'<svg[\s>]', caseSensitive: false).hasMatch(inner) &&
-        inner.toLowerCase().contains('</svg>')) {
-      return (text: inner, mimeType: 'image/svg+xml');
+    final lower = raw.toLowerCase();
+    final start = lower.indexOf('<svg');
+    final end = lower.lastIndexOf('</svg>');
+    if (start != -1 && end != -1 && end > start) {
+      final svg = raw.substring(start, end + '</svg>'.length).trim();
+      return (text: svg, mimeType: 'image/svg+xml');
     }
     return (text: raw, mimeType: 'text/markdown');
   }
