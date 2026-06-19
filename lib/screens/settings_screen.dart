@@ -382,6 +382,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           value: settings.settingsFont,
           onChanged: read.setSettingsFont,
         ),
+        _FontRow(
+          label: 'Code / JSON',
+          value: settings.monoFont,
+          onChanged: read.setMonoFont,
+          monoOnly: true,
+        ),
       ],
     );
   }
@@ -419,14 +425,21 @@ class _FontRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
+    this.monoOnly = false,
   });
 
   final String label;
   final AppFont value;
   final ValueChanged<AppFont> onChanged;
 
+  /// When true, only monospace fonts are offered (for the code/JSON picker).
+  final bool monoOnly;
+
   /// Fonts listed alphabetically by display name.
   static final List<AppFont> _sortedFonts = AppFont.values.toList()
+    ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+
+  static final List<AppFont> _sortedMonoFonts = AppFontX.monoFonts
     ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
 
   @override
@@ -448,7 +461,7 @@ class _FontRow extends StatelessWidget {
               if (f != null) onChanged(f);
             },
             items: [
-              for (final f in _sortedFonts)
+              for (final f in (monoOnly ? _sortedMonoFonts : _sortedFonts))
                 DropdownMenuItem(
                   value: f,
                   child: Text(f.label, style: TextStyle(fontFamily: f.family)),

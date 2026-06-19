@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../models/app_font.dart';
+import '../providers/settings_provider.dart';
 import '../services/debug_log.dart';
 
 /// Debug panel. Lists API exchanges as sessions (one per prompt → response);
@@ -418,7 +420,7 @@ class _EventTile extends StatelessWidget {
         tilePadding: EdgeInsets.zero,
         childrenPadding: const EdgeInsets.only(bottom: 10),
         title: row,
-        children: [_CodeBlock(text: _pretty(event.detail!))],
+        children: [_CodeBlock(text: _pretty(event.detail!), highlightJson: true)],
       ),
     );
   }
@@ -455,7 +457,7 @@ class _ResponseDetail extends StatelessWidget {
         if (session.hasContent)
           _CodeBlock(text: session.content, mono: false)
         else if (session.responseBody != null)
-          _CodeBlock(text: session.prettyResponse!)
+          _CodeBlock(text: session.prettyResponse!, highlightJson: true)
         else if (session.summary != null)
           Text(session.summary!, style: theme.textTheme.bodyMedium)
         else
@@ -472,7 +474,7 @@ class _ResponseDetail extends StatelessWidget {
           const SizedBox(height: 16),
           _Collapsible(
             title: 'Request body',
-            child: _CodeBlock(text: session.prettyRequest!),
+            child: _CodeBlock(text: session.prettyRequest!, highlightJson: true),
           ),
         ],
         if (session.rawFrames.isNotEmpty) ...[
@@ -527,13 +529,32 @@ class _Collapsible extends StatelessWidget {
 }
 
 class _CodeBlock extends StatelessWidget {
-  const _CodeBlock({required this.text, this.mono = true});
+  const _CodeBlock({
+    required this.text,
+    this.mono = true,
+    this.highlightJson = false,
+  });
+
   final String text;
   final bool mono;
 
+  /// When true, render the text as colour-coded JSON (keys, strings, numbers,
+  /// literals). Falls back to plain text if it can't be tokenised.
+  final bool highlightJson;
+
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    // Mono text (code/JSON/raw frames) uses the user-chosen mono font.
+    final monoFamily = context.watch<SettingsProvider>().monoFont.family;
+    final baseStyle = TextStyle(
+      fontFamily: mono ? monoFamily : null,
+      fontSize: 12.5,
+      height: 1.4,
+      color: scheme.onSurface,
+    );
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
@@ -542,16 +563,131 @@ class _CodeBlock extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: scheme.outlineVariant),
       ),
-      child: SelectableText(
-        text,
-        style: TextStyle(
-          fontFamily: mono ? 'monospace' : null,
-          fontSize: 12.5,
-          height: 1.4,
-        ),
-      ),
+      child: highlightJson
+          ? SelectableText.rich(
+              _highlightJson(text, _JsonPalette.of(theme), baseStyle),
+            )
+          : SelectableText(text, style: baseStyle),
     );
   }
+}
+
+/// Colours used to syntax-highlight JSON, tuned per theme brightness.
+class _JsonPalette {
+  const _JsonPalette({
+    required this.key,
+    required this.string,
+    required this.number,
+    required this.literal,
+    required this.punctuation,
+  });
+
+  final Color key;
+  final Color string;
+  final Color number;
+  final Color literal; // true / false / null
+  final Color punctuation;
+
+  factory _JsonPalette.of(ThemeData theme) {
+    final muted = theme.colorScheme.onSurfaceVariant;
+    if (theme.brightness == Brightness.dark) {
+      return _JsonPalette(
+        key: const Color(0xFF9CDCFE),
+        string: const Color(0xFFCE9178),
+        number: const Color(0xFFB5CEA8),
+        literal: const Color(0xFF569CD6),
+        punctuation: muted,
+      );
+    }
+    return _JsonPalette(
+      key: const Color(0xFF0451A5),
+      string: const Color(0xFFA31515),
+      number: const Color(0xFF098658),
+      literal: const Color(0xFF0000FF),
+      punctuation: muted,
+    );
+  }
+}
+
+/// Tokenises [source] into coloured spans. Keeps the [base] style (font family,
+/// size) and only overrides colour per token, so it works for any mono font.
+TextSpan _highlightJson(String source, _JsonPalette palette, TextStyle base) {
+  final spans = <TextSpan>[];
+  final n = source.length;
+  var i = 0;
+
+  bool isDigitStart(String c) => c == '-' || (c.codeUnitAt(0) ^ 0x30) <= 9;
+
+  while (i < n) {
+    final c = source[i];
+    if (c == '"') {
+      // Read a (possibly escaped) string, then decide key vs. value by the
+      // next non-space character.
+      final start = i++;
+      while (i < n) {
+        if (source[i] == '\\') {
+          i += 2;
+          continue;
+        }
+        if (source[i] == '"') {
+          i++;
+          break;
+        }
+        i++;
+      }
+      var j = i;
+      while (j < n && (source[j] == ' ' || source[j] == '\t')) {
+        j++;
+      }
+      final isKey = j < n && source[j] == ':';
+      spans.add(TextSpan(
+        text: source.substring(start, i),
+        style: TextStyle(color: isKey ? palette.key : palette.string),
+      ));
+    } else if (isDigitStart(c)) {
+      final start = i;
+      while (i < n && '+-0123456789.eE'.contains(source[i])) {
+        i++;
+      }
+      spans.add(TextSpan(
+        text: source.substring(start, i),
+        style: TextStyle(color: palette.number),
+      ));
+    } else if (source.startsWith('true', i) ||
+        source.startsWith('false', i) ||
+        source.startsWith('null', i)) {
+      final lit = source.startsWith('false', i)
+          ? 'false'
+          : source.startsWith('true', i)
+              ? 'true'
+              : 'null';
+      spans.add(TextSpan(
+        text: lit,
+        style: TextStyle(color: palette.literal),
+      ));
+      i += lit.length;
+    } else {
+      // A run of punctuation / whitespace / structural characters.
+      final start = i;
+      while (i < n) {
+        final cc = source[i];
+        if (cc == '"' ||
+            isDigitStart(cc) ||
+            source.startsWith('true', i) ||
+            source.startsWith('false', i) ||
+            source.startsWith('null', i)) {
+          break;
+        }
+        i++;
+      }
+      spans.add(TextSpan(
+        text: source.substring(start, i),
+        style: TextStyle(color: palette.punctuation),
+      ));
+    }
+  }
+
+  return TextSpan(style: base, children: spans);
 }
 
 class _MetaPill extends StatelessWidget {

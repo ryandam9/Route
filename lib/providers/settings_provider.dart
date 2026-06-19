@@ -23,6 +23,7 @@ class SettingsProvider extends ChangeNotifier {
   static const _kUserFont = 'font_user';
   static const _kModelFont = 'font_model';
   static const _kSettingsFont = 'font_settings';
+  static const _kMonoFont = 'font_mono';
   static const _kUserFontScale = 'font_scale_user';
   static const _kModelFontScale = 'font_scale_model';
   static const _kFavoriteModels = 'favorite_models';
@@ -42,6 +43,8 @@ class SettingsProvider extends ChangeNotifier {
   AppFont _userFont = AppFont.robotoCondensed;
   AppFont _modelFont = AppFont.robotoCondensed;
   AppFont _settingsFont = AppFont.robotoCondensed;
+  // JetBrains Mono is the default for code/JSON (debug panel).
+  AppFont _monoFont = AppFont.jetBrainsMono;
   // Text-size multipliers for chat messages (1.0 == default size).
   double _userFontScale = 1.0;
   double _modelFontScale = 1.0;
@@ -68,6 +71,9 @@ class SettingsProvider extends ChangeNotifier {
   AppFont get userFont => _userFont;
   AppFont get modelFont => _modelFont;
   AppFont get settingsFont => _settingsFont;
+
+  /// Monospace font for code/JSON in the debug panel.
+  AppFont get monoFont => _monoFont;
 
   /// Text-size multipliers for your prompts and the model's replies. Lets
   /// people who want larger (or smaller) chat text adjust it independently.
@@ -101,6 +107,8 @@ class SettingsProvider extends ChangeNotifier {
     _modelFont = AppFontX.fromIndex(_prefs.getInt(_kModelFont) ?? def.index);
     _settingsFont =
         AppFontX.fromIndex(_prefs.getInt(_kSettingsFont) ?? def.index);
+    _monoFont = AppFontX.fromIndex(
+        _prefs.getInt(_kMonoFont) ?? AppFont.jetBrainsMono.index);
     _userFontScale = _clampScale(_prefs.getDouble(_kUserFontScale) ?? 1.0);
     _modelFontScale = _clampScale(_prefs.getDouble(_kModelFontScale) ?? 1.0);
     _favoriteModels =
@@ -180,6 +188,12 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setSettingsFont(AppFont f) async {
     _settingsFont = f;
     await _prefs.setInt(_kSettingsFont, f.index);
+    notifyListeners();
+  }
+
+  Future<void> setMonoFont(AppFont f) async {
+    _monoFont = f;
+    await _prefs.setInt(_kMonoFont, f.index);
     notifyListeners();
   }
 
