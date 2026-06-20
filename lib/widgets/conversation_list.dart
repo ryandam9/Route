@@ -14,16 +14,33 @@ import '../screens/settings_screen.dart';
 import '../screens/usage_screen.dart';
 import 'ui_kit.dart';
 
+/// The sections reachable from the sidebar navigation rail. On desktop these
+/// swap the centre pane in place; on mobile each opens as its own route.
+enum DashboardSection { chat, models, usage, debug, apiKeys, settings, help }
+
 /// Sidebar: app header, primary actions, a navigation rail (Usage, Debug,
 /// Settings, …) and the list of recent chats with search and per-chat actions.
 class ConversationList extends ConsumerStatefulWidget {
-  const ConversationList({super.key, this.inDrawer = false, this.onCollapse});
+  const ConversationList({
+    super.key,
+    this.inDrawer = false,
+    this.onCollapse,
+    this.selectedSection,
+    this.onNavigate,
+  });
 
   /// When shown inside a [Drawer], selecting a conversation should close it.
   final bool inDrawer;
 
   /// When provided (wide layout), shows a button to collapse the sidebar.
   final VoidCallback? onCollapse;
+
+  /// The currently active section (desktop), used to highlight its nav item.
+  final DashboardSection? selectedSection;
+
+  /// When provided (desktop), tapping a nav item switches the centre pane in
+  /// place via this callback instead of pushing a new route.
+  final void Function(DashboardSection section)? onNavigate;
 
   @override
   ConsumerState<ConversationList> createState() => _ConversationListState();
@@ -59,6 +76,19 @@ class _ConversationListState extends ConsumerState<ConversationList> {
   void _newChat() {
     ref.read(chatProvider.notifier).newConversation();
     if (widget.inDrawer) Navigator.of(context).pop();
+  }
+
+  bool _isSelected(DashboardSection section) =>
+      widget.onNavigate != null && widget.selectedSection == section;
+
+  /// On desktop, switches the centre pane via [ConversationList.onNavigate];
+  /// on mobile runs [mobile] (which pushes a route / closes the drawer).
+  void _navigate(DashboardSection section, {required VoidCallback mobile}) {
+    if (widget.onNavigate != null) {
+      widget.onNavigate!(section);
+    } else {
+      mobile();
+    }
   }
 
   @override
@@ -107,40 +137,55 @@ class _ConversationListState extends ConsumerState<ConversationList> {
                 _NavItem(
                   icon: Icons.history,
                   label: 'Chat history',
-                  selected: true,
-                  onTap: () {
-                    if (widget.inDrawer) Navigator.of(context).pop();
-                  },
+                  selected: _isSelected(DashboardSection.chat),
+                  onTap: () => _navigate(
+                    DashboardSection.chat,
+                    mobile: () {
+                      if (widget.inDrawer) Navigator.of(context).pop();
+                    },
+                  ),
                 ),
                 _NavItem(
                   icon: Icons.grid_view_outlined,
                   label: 'Models',
-                  onTap: _openModels,
+                  selected: _isSelected(DashboardSection.models),
+                  onTap: () =>
+                      _navigate(DashboardSection.models, mobile: _openModels),
                 ),
                 _NavItem(
                   icon: Icons.insights_outlined,
                   label: 'Usage',
-                  onTap: () => _open(const UsageScreen()),
+                  selected: _isSelected(DashboardSection.usage),
+                  onTap: () => _navigate(DashboardSection.usage,
+                      mobile: () => _open(const UsageScreen())),
                 ),
                 _NavItem(
                   icon: Icons.bug_report_outlined,
                   label: 'Debug',
-                  onTap: () => _open(const DebugScreen()),
+                  selected: _isSelected(DashboardSection.debug),
+                  onTap: () => _navigate(DashboardSection.debug,
+                      mobile: () => _open(const DebugScreen())),
                 ),
                 _NavItem(
                   icon: Icons.key_outlined,
                   label: 'API keys',
-                  onTap: () => _open(const SettingsScreen()),
+                  selected: _isSelected(DashboardSection.apiKeys),
+                  onTap: () => _navigate(DashboardSection.apiKeys,
+                      mobile: () => _open(const SettingsScreen())),
                 ),
                 _NavItem(
                   icon: Icons.settings_outlined,
                   label: 'Settings',
-                  onTap: () => _open(const SettingsScreen()),
+                  selected: _isSelected(DashboardSection.settings),
+                  onTap: () => _navigate(DashboardSection.settings,
+                      mobile: () => _open(const SettingsScreen())),
                 ),
                 _NavItem(
                   icon: Icons.help_outline,
                   label: 'Help & Troubleshoot',
-                  onTap: () => _open(const HelpScreen()),
+                  selected: _isSelected(DashboardSection.help),
+                  onTap: () => _navigate(DashboardSection.help,
+                      mobile: () => _open(const HelpScreen())),
                 ),
                 const SizedBox(height: 8),
                 _RecentHeader(
