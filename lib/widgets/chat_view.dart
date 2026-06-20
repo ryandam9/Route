@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,6 +14,7 @@ import 'chat_input.dart';
 import 'dashboard_landing.dart';
 import 'message_bubble.dart';
 import 'model_selector.dart';
+import 'motion.dart';
 import 'ui_kit.dart';
 
 /// The main chat pane: header (model selector), message list and composer.
@@ -82,8 +85,101 @@ class ChatView extends ConsumerWidget {
                   ),
                 ),
         ),
+        if (hasChat) const _RespondingStrip(),
         if (hasChat) const ChatInput(),
       ],
+    );
+  }
+}
+
+/// A small status strip shown above the composer while a model is responding:
+/// a spinner, the model name and the elapsed seconds. Reassures the user that
+/// the request is live and which model is replying.
+class _RespondingStrip extends ConsumerStatefulWidget {
+  const _RespondingStrip();
+
+  @override
+  ConsumerState<_RespondingStrip> createState() => _RespondingStripState();
+}
+
+class _RespondingStripState extends ConsumerState<_RespondingStrip> {
+  Timer? _timer;
+  DateTime? _start;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _modelLabel(String? id) {
+    final t = id?.trim() ?? '';
+    if (t.isEmpty) return 'The model';
+    final slash = t.lastIndexOf('/');
+    return (slash >= 0 && slash < t.length - 1) ? t.substring(slash + 1) : t;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final responding = ref.watch(chatProvider.select((c) => c.isResponding));
+    final modelId = ref.watch(chatProvider.select((c) => c.current?.modelId));
+    final motion = Motion.of(context, ref);
+
+    // Keep a 1s ticker running only while responding, to show elapsed time.
+    if (responding && _timer == null) {
+      _start = DateTime.now();
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else if (!responding && _timer != null) {
+      _timer!.cancel();
+      _timer = null;
+      _start = null;
+    }
+
+    final theme = Theme.of(context);
+    final elapsed =
+        _start == null ? 0 : DateTime.now().difference(_start!).inSeconds;
+
+    return AnimatedSwitcher(
+      duration: motion.fast,
+      transitionBuilder: (child, animation) => SizeTransition(
+        sizeFactor: animation,
+        alignment: Alignment.topCenter,
+        child: FadeTransition(opacity: animation, child: child),
+      ),
+      child: !responding
+          ? const SizedBox(width: double.infinity)
+          : Align(
+              key: const ValueKey('responding'),
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                child: Material(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(999),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_modelLabel(modelId)} is responding · ${elapsed}s',
+                          style: theme.textTheme.labelMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }

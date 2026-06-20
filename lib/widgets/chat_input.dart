@@ -39,14 +39,22 @@ class _ChatInputState extends ConsumerState<ChatInput> {
   StreamSubscription<Uint8List>? _audioSub;
   final BytesBuilder _pcm = BytesBuilder(copy: false);
   bool _recording = false;
+  Timer? _recordTimer;
+  Duration _recordElapsed = Duration.zero;
 
   @override
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
     _audioSub?.cancel();
+    _recordTimer?.cancel();
     _recorder.dispose();
     super.dispose();
+  }
+
+  void _stopRecordTimer() {
+    _recordTimer?.cancel();
+    _recordTimer = null;
   }
 
   void _send() {
@@ -145,10 +153,18 @@ class _ChatInputState extends ConsumerState<ChatInput> {
         _toast('Recording failed: $e');
       },
     );
+    _recordElapsed = Duration.zero;
+    _stopRecordTimer();
+    _recordTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() => _recordElapsed += const Duration(seconds: 1));
+      }
+    });
     setState(() => _recording = true);
   }
 
   Future<void> _stopRecording() async {
+    _stopRecordTimer();
     await _audioSub?.cancel();
     _audioSub = null;
     await _recorder.stop();
@@ -173,6 +189,7 @@ class _ChatInputState extends ConsumerState<ChatInput> {
 
   /// Tears down an in-progress recording, discarding any captured audio.
   Future<void> _cleanupRecording() async {
+    _stopRecordTimer();
     await _audioSub?.cancel();
     _audioSub = null;
     _pcm.clear();
@@ -227,6 +244,26 @@ class _ChatInputState extends ConsumerState<ChatInput> {
                         onRemove: (i) =>
                             setState(() => _attachments.removeAt(i)),
                       ),
+              ),
+            ),
+            // A recording pill with a timer and Cancel / Use actions.
+            AnimatedSize(
+              duration: motion.fast,
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: AnimatedSwitcher(
+                duration: motion.fast,
+                child: _recording
+                    ? Padding(
+                        key: const ValueKey('recording'),
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _RecordingPill(
+                          elapsed: _recordElapsed,
+                          onCancel: _cleanupRecording,
+                          onUse: _stopRecording,
+                        ),
+                      )
+                    : const SizedBox(width: double.infinity),
               ),
             ),
             Row(
@@ -385,4 +422,86 @@ class _AttachmentPreviews extends StatelessWidget {
         AttachmentKind.audio => a.name ?? 'Audio',
         AttachmentKind.file => a.name ?? 'Document',
       };
+}
+
+/// A recording status pill shown above the composer while capturing audio: a
+/// pulsing red dot, the elapsed time, and Cancel / Use actions.
+class _RecordingPill extends StatelessWidget {
+  const _RecordingPill({
+    required this.elapsed,
+    required this.onCancel,
+    required this.onUse,
+  });
+
+  final Duration elapsed;
+  final VoidCallback onCancel;
+  final VoidCallback onUse;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    String two(int n) => n.toString().padLeft(2, '0');
+    final time = '${two(elapsed.inMinutes)}:${two(elapsed.inSeconds % 60)}';
+
+    return Material(
+      color: theme.colorScheme.errorContainer,
+      borderRadius: BorderRadius.circular(999),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+        child: Row(
+          children: [
+            _PulsingDot(color: theme.colorScheme.error),
+            const SizedBox(width: 8),
+            Text(
+              'Recording $time',
+              style: theme.textTheme.labelLarge
+                  ?.copyWith(color: theme.colorScheme.onErrorContainer),
+            ),
+            const Spacer(),
+            TextButton(onPressed: onCancel, child: const Text('Cancel')),
+            const SizedBox(width: 4),
+            FilledButton.tonal(onPressed: onUse, child: const Text('Use')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A small dot that gently pulses to signal active recording.
+class _PulsingDot extends StatefulWidget {
+  const _PulsingDot({required this.color});
+
+  final Color color;
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Honour reduced motion: a static dot when animations are disabled.
+    if (MediaQuery.of(context).disableAnimations) {
+      return Icon(Icons.fiber_manual_record, size: 12, color: widget.color);
+    }
+    return FadeTransition(
+      opacity: Tween(begin: 0.4, end: 1.0).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+      ),
+      child: Icon(Icons.fiber_manual_record, size: 12, color: widget.color),
+    );
+  }
 }
