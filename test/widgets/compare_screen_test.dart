@@ -45,6 +45,8 @@ void main() {
   testWidgets('shows a placeholder until a run starts', (tester) async {
     await pump(tester);
     expect(find.text('Compare models side by side'), findsOneWidget);
+    // A Debug button is available to inspect the underlying API sessions.
+    expect(find.byIcon(Icons.bug_report_outlined), findsOneWidget);
     // Run is disabled with no models or prompt.
     final runButton = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Run'),
