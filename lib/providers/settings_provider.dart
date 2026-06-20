@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_font.dart';
 import '../services/secure_storage_service.dart';
+import '../theme/app_theme.dart';
 import 'app_providers.dart';
 
 /// Riverpod provider for app settings.
@@ -18,6 +19,7 @@ class SettingsState {
     required this.apiKeyFromEnvironment,
     required this.defaultModel,
     required this.themeMode,
+    required this.seedColor,
     required this.downloadDir,
     required this.animateModelIndicator,
     required this.continuousModelBorder,
@@ -39,6 +41,9 @@ class SettingsState {
   final bool apiKeyFromEnvironment;
   final String defaultModel;
   final ThemeMode themeMode;
+
+  /// Accent ("seed") colour both themes are generated from.
+  final Color seedColor;
   final String? downloadDir;
   final bool animateModelIndicator;
   final bool continuousModelBorder;
@@ -68,6 +73,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
 
   static const _kDefaultModel = 'default_model';
   static const _kThemeMode = 'theme_mode';
+  static const _kSeedColor = 'seed_color';
   static const _kDownloadDir = 'download_dir';
   static const _kAnimateModelIndicator = 'animate_model_indicator';
   static const _kContinuousModelBorder = 'continuous_model_border';
@@ -92,6 +98,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
   bool _apiKeyFromEnv = false;
   String _defaultModel = 'openai/gpt-4o-mini';
   ThemeMode _themeMode = ThemeMode.system;
+  Color _seedColor = AppTheme.defaultSeed;
   String? _downloadDir;
   bool _animateModelIndicator = false;
   bool _continuousModelBorder = false;
@@ -123,6 +130,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
         apiKeyFromEnvironment: _apiKeyFromEnv,
         defaultModel: _defaultModel,
         themeMode: _themeMode,
+        seedColor: _seedColor,
         downloadDir: _downloadDir,
         animateModelIndicator: _animateModelIndicator,
         continuousModelBorder: _continuousModelBorder,
@@ -170,6 +178,8 @@ class SettingsNotifier extends Notifier<SettingsState> {
         themeIndex < ThemeMode.values.length) {
       _themeMode = ThemeMode.values[themeIndex];
     }
+    final seed = _prefs.getInt(_kSeedColor);
+    if (seed != null) _seedColor = Color(seed);
     _loading = false;
     _emit();
   }
@@ -294,6 +304,12 @@ class SettingsNotifier extends Notifier<SettingsState> {
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
     await _prefs.setInt(_kThemeMode, mode.index);
+    _emit();
+  }
+
+  Future<void> setSeedColor(Color color) async {
+    _seedColor = color;
+    await _prefs.setInt(_kSeedColor, color.toARGB32());
     _emit();
   }
 }

@@ -306,6 +306,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onSelectionChanged: (s) =>
               ref.read(settingsProvider.notifier).setThemeMode(s.first),
         ),
+        const SizedBox(height: 16),
+        Text('ACCENT COLOR', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: 10),
+        _AccentColorPicker(
+          selected: settings.seedColor,
+          onChanged: (c) => ref.read(settingsProvider.notifier).setSeedColor(c),
+        ),
+        const SizedBox(height: 4),
         SwitchListTile(
           value: settings.animateModelIndicator,
           onChanged: (v) =>
@@ -596,6 +604,234 @@ class _Step extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(label, style: Theme.of(context).textTheme.labelSmall),
+      ],
+    );
+  }
+}
+
+/// Curated accent-colour swatches plus a custom RGB picker. Both themes are
+/// regenerated from the chosen colour.
+class _AccentColorPicker extends StatelessWidget {
+  const _AccentColorPicker({required this.selected, required this.onChanged});
+
+  final Color selected;
+  final ValueChanged<Color> onChanged;
+
+  static const _presets = <Color>[
+    Color(0xFF5A4FCF), // indigo (default)
+    Color(0xFF7C3AED), // violet
+    Color(0xFF2563EB), // blue
+    Color(0xFF0891B2), // cyan
+    Color(0xFF0D9488), // teal
+    Color(0xFF16A34A), // green
+    Color(0xFFCA8A04), // amber
+    Color(0xFFEA580C), // orange
+    Color(0xFFDC2626), // red
+    Color(0xFFDB2777), // pink
+    Color(0xFF475569), // slate
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final sel = selected.toARGB32();
+    final isPreset = _presets.any((c) => c.toARGB32() == sel);
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        for (final c in _presets)
+          _ColorDot(
+            color: c,
+            selected: c.toARGB32() == sel,
+            onTap: () => onChanged(c),
+          ),
+        _CustomColorDot(
+          selected: !isPreset,
+          current: selected,
+          onPicked: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkResponse(
+      onTap: onTap,
+      radius: 26,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected ? scheme.onSurface : scheme.outlineVariant,
+            width: selected ? 3 : 1,
+          ),
+        ),
+        child: selected
+            ? const Icon(Icons.check, color: Colors.white, size: 20)
+            : null,
+      ),
+    );
+  }
+}
+
+/// Rainbow swatch that opens a dialog to choose any colour.
+class _CustomColorDot extends StatelessWidget {
+  const _CustomColorDot({
+    required this.selected,
+    required this.current,
+    required this.onPicked,
+  });
+
+  final bool selected;
+  final Color current;
+  final ValueChanged<Color> onPicked;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkResponse(
+      onTap: () async {
+        final picked = await showDialog<Color>(
+          context: context,
+          builder: (_) =>
+              _CustomColorDialog(initial: selected ? current : scheme.primary),
+        );
+        if (picked != null) onPicked(picked);
+      },
+      radius: 26,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const SweepGradient(colors: [
+            Color(0xFFEF4444),
+            Color(0xFFEAB308),
+            Color(0xFF22C55E),
+            Color(0xFF06B6D4),
+            Color(0xFF6366F1),
+            Color(0xFFEC4899),
+            Color(0xFFEF4444),
+          ]),
+          border: Border.all(
+            color: selected ? scheme.onSurface : scheme.outlineVariant,
+            width: selected ? 3 : 1,
+          ),
+        ),
+        child: Icon(selected ? Icons.check : Icons.tune,
+            color: Colors.white, size: 20),
+      ),
+    );
+  }
+}
+
+/// Simple dependency-free RGB colour picker (sliders + live preview).
+class _CustomColorDialog extends StatefulWidget {
+  const _CustomColorDialog({required this.initial});
+
+  final Color initial;
+
+  @override
+  State<_CustomColorDialog> createState() => _CustomColorDialogState();
+}
+
+class _CustomColorDialogState extends State<_CustomColorDialog> {
+  late int _r;
+  late int _g;
+  late int _b;
+
+  @override
+  void initState() {
+    super.initState();
+    _r = (widget.initial.r * 255).round();
+    _g = (widget.initial.g * 255).round();
+    _b = (widget.initial.b * 255).round();
+  }
+
+  Color get _color => Color.fromARGB(255, _r, _g, _b);
+
+  String get _hex => _color
+      .toARGB32()
+      .toRadixString(16)
+      .padLeft(8, '0')
+      .substring(2)
+      .toUpperCase();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Custom accent colour'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: _color,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant),
+            ),
+            alignment: Alignment.center,
+            child: Text('#$_hex',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    shadows: [Shadow(blurRadius: 2)])),
+          ),
+          const SizedBox(height: 12),
+          _channel('R', _r, Colors.red, (v) => setState(() => _r = v)),
+          _channel('G', _g, Colors.green, (v) => setState(() => _g = v)),
+          _channel('B', _b, Colors.blue, (v) => setState(() => _b = v)),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_color),
+          child: const Text('Use colour'),
+        ),
+      ],
+    );
+  }
+
+  Widget _channel(
+      String label, int value, Color tint, ValueChanged<int> onChanged) {
+    return Row(
+      children: [
+        SizedBox(width: 18, child: Text(label)),
+        Expanded(
+          child: Slider(
+            value: value.toDouble(),
+            max: 255,
+            divisions: 255,
+            activeColor: tint,
+            label: '$value',
+            onChanged: (v) => onChanged(v.round()),
+          ),
+        ),
+        SizedBox(width: 34, child: Text('$value', textAlign: TextAlign.end)),
       ],
     );
   }

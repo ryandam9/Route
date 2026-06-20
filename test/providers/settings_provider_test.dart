@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:route/models/app_font.dart';
 import 'package:route/providers/app_providers.dart';
 import 'package:route/providers/settings_provider.dart';
+import 'package:route/theme/app_theme.dart';
 
 import '../helpers/fakes.dart';
 
@@ -227,6 +228,20 @@ void main() {
     expect(c.read(settingsProvider).isFavoriteModel('openai/gpt-4o'), isFalse);
     expect(prefs.getStringList('favorite_models'),
         isNot(contains('openai/gpt-4o')));
+  });
+
+  test('seedColor defaults to the brand colour and persists', () async {
+    final c = await createContainer(prefs: const {});
+    addTearDown(c.dispose);
+    final n = c.read(settingsProvider.notifier);
+
+    expect(c.read(settingsProvider).seedColor, AppTheme.defaultSeed);
+
+    const custom = Color(0xFF0D9488);
+    await n.setSeedColor(custom);
+    expect(c.read(settingsProvider).seedColor, custom);
+    expect(c.read(sharedPreferencesProvider).getInt('seed_color'),
+        custom.toARGB32());
   });
 
   test('notifies listeners on change', () async {

@@ -14,11 +14,12 @@ class RouteApp extends ConsumerWidget {
     final themeMode = ref.watch(settingsProvider.select((s) => s.themeMode));
     final headingFont =
         ref.watch(settingsProvider.select((s) => s.headingFont));
+    final seed = ref.watch(settingsProvider.select((s) => s.seedColor));
     return MaterialApp(
       title: 'Route',
       debugShowCheckedModeBanner: false,
-      theme: _withHeadingFont(AppTheme.light, headingFont),
-      darkTheme: _withHeadingFont(AppTheme.dark, headingFont),
+      theme: _withHeadingFont(AppTheme.lightFor(seed), headingFont),
+      darkTheme: _withHeadingFont(AppTheme.darkFor(seed), headingFont),
       themeMode: themeMode,
       home: const HomeScreen(),
     );
