@@ -11,6 +11,26 @@ void main() {
     expect(AppTheme.dark.brightness, Brightness.dark);
   });
 
+  test('custom-accent themes do not emit FlexColorScheme warnings', () {
+    const customSeed = Color(0xFF2E7D32); // any non-default accent
+    final logs = <String>[];
+    final original = debugPrint;
+    debugPrint = (String? message, {int? wrapWidth}) {
+      if (message != null) logs.add(message);
+    };
+    try {
+      AppTheme.lightFor(customSeed);
+      AppTheme.darkFor(customSeed);
+    } finally {
+      debugPrint = original;
+    }
+    expect(
+      logs.where((l) => l.contains('FlexColorScheme WARNING')),
+      isEmpty,
+      reason: 'custom accent themes should not log FlexColorScheme warnings',
+    );
+  });
+
   testWidgets('renders a Material app with AppTheme', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

@@ -41,6 +41,10 @@ class AppTheme {
       ? _build(ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark))
       : FlexThemeData.dark(
           primary: seed,
+          // The dark theme is seeded from the same accent as the light theme;
+          // tell FlexColorScheme so it can derive the M3 "fixed" colours
+          // correctly (otherwise it warns that primaryLightRef is null).
+          primaryLightRef: seed,
           keyColors: const FlexKeyColors(keepPrimary: true),
           surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
           blendLevel: 6,
