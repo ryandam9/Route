@@ -104,8 +104,8 @@ the final stream chunk. Wombat accumulates these for the current session.
 
 ```bash
 # 1. Clone
-git clone https://github.com/ryandam9/Route.git
-cd Route
+git clone https://github.com/ryandam9/Wombat.git
+cd Wombat
 
 # 2. Fetch dependencies
 flutter pub get
