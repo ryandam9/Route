@@ -25,7 +25,18 @@ class DashboardLanding extends ConsumerWidget {
         padding: const EdgeInsets.all(24),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
-          child: Column(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic,
+            builder: (context, t, child) => Opacity(
+              opacity: t.clamp(0.0, 1.0),
+              child: Transform.translate(
+                offset: Offset(0, (1 - t) * 16),
+                child: child,
+              ),
+            ),
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ClipOval(
@@ -81,6 +92,7 @@ class DashboardLanding extends ConsumerWidget {
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),

@@ -43,22 +43,39 @@ class ChatView extends ConsumerWidget {
         ),
         const Divider(height: 1),
         Expanded(
-          child: chat.loading
-              ? const Center(child: CircularProgressIndicator())
-              : (convo == null || convo.messages.isEmpty)
-                  ? const DashboardLanding()
-                  : _MessageList(key: ValueKey(convo.id)),
-        ),
-        if (chat.error != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-            child: InfoBanner(
-              title: 'Error',
-              message: chat.error!,
-              kind: BannerKind.error,
-              onDismiss: () => ref.read(chatProvider.notifier).clearError(),
-            ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            child: chat.loading
+                ? const Center(
+                    key: ValueKey('loading'),
+                    child: CircularProgressIndicator())
+                : (convo == null || convo.messages.isEmpty)
+                    ? const DashboardLanding(key: ValueKey('empty'))
+                    : _MessageList(key: ValueKey(convo.id)),
           ),
+        ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          transitionBuilder: (child, animation) => SizeTransition(
+            sizeFactor: animation,
+            child: FadeTransition(opacity: animation, child: child),
+          ),
+          child: chat.error == null
+              ? const SizedBox.shrink()
+              : Padding(
+                  key: ValueKey(chat.error),
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                  child: InfoBanner(
+                    title: 'Error',
+                    message: chat.error!,
+                    kind: BannerKind.error,
+                    onDismiss: () =>
+                        ref.read(chatProvider.notifier).clearError(),
+                  ),
+                ),
+        ),
         const ChatInput(),
       ],
     );
