@@ -6,6 +6,7 @@ import '../providers/compare_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/ui_kit.dart';
+import 'debug_screen.dart';
 import 'model_picker_screen.dart';
 
 /// Runs one prompt against several models at once and shows the replies side
@@ -68,7 +69,18 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
         state.prompt.trim().isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Compare models')),
+      appBar: AppBar(
+        title: const Text('Compare models'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report_outlined),
+            tooltip: 'Debug sessions',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const DebugScreen()),
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           _ModelBar(
