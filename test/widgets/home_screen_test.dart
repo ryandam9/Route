@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wombat/models/conversation.dart';
 import 'package:wombat/providers/chat_provider.dart';
 import 'package:wombat/screens/home_screen.dart';
 import 'package:wombat/theme/app_theme.dart';
@@ -11,12 +12,13 @@ import '../helpers/fakes.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Future<Widget> buildApp(WidgetTester tester) async {
+  Future<Widget> buildApp(WidgetTester tester,
+      {List<Conversation>? conversations}) async {
     late ProviderContainer container;
     await tester.runAsync(() async {
       container = await createContainer(
         service: FakeOpenRouterService(),
-        store: FakeConversationStore(),
+        store: FakeConversationStore(initial: conversations),
       );
       await waitUntil(() => !container.read(chatProvider.notifier).loading);
     });
@@ -78,6 +80,30 @@ void main() {
     expect(find.text('Compare models'), findsOneWidget);
     // ...and there is no back button (nothing was pushed).
     expect(find.byTooltip('Back'), findsNothing);
+  });
+
+  testWidgets('dashboard caps recent chats at 5; workspace shows all',
+      (tester) async {
+    tester.view.devicePixelRatio = 1.0;
+    // Tall enough that the lazy sidebar list builds all rows.
+    tester.view.physicalSize = const Size(1200, 1600);
+    addTearDown(tester.view.reset);
+
+    final convos = [
+      for (var i = 0; i < 7; i++)
+        Conversation(id: 'c$i', title: 'Chat $i', modelId: 'm/$i'),
+    ];
+    await tester.pumpWidget(await buildApp(tester, conversations: convos));
+    await tester.pump();
+
+    // Dashboard sidebar shows only 5 recent chats + a "view all" affordance.
+    expect(find.byType(ListTile), findsNWidgets(5));
+    expect(find.textContaining('View all'), findsOneWidget);
+
+    // Opening the full history (Chat history page) lists all 7.
+    await tester.tap(find.text('Chat history'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ListTile), findsNWidgets(7));
   });
 
   testWidgets('Chat history opens the two-pane chat workspace', (tester) async {

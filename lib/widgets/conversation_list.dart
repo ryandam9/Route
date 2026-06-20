@@ -63,6 +63,10 @@ class ConversationList extends ConsumerStatefulWidget {
 }
 
 class _ConversationListState extends ConsumerState<ConversationList> {
+  /// Max recent chats shown in the dashboard sidebar (full list is on the
+  /// Chat history page).
+  static const int _recentLimit = 5;
+
   final TextEditingController _search = TextEditingController();
   bool _searching = false;
   String _query = '';
@@ -114,13 +118,21 @@ class _ConversationListState extends ConsumerState<ConversationList> {
     final theme = Theme.of(context);
 
     final query = _query.trim().toLowerCase();
-    final conversations = query.isEmpty
+    final matches = query.isEmpty
         ? chat.conversations
         : chat.conversations
             .where((c) =>
                 c.title.toLowerCase().contains(query) ||
                 c.modelId.toLowerCase().contains(query))
             .toList();
+    // On the dashboard (nav rail visible) keep the recent list short; the full
+    // history lives on the Chat history page. Searching shows all matches.
+    final capped = widget.showNavigation && query.isEmpty;
+    final conversations =
+        (capped && matches.length > _recentLimit)
+            ? matches.sublist(0, _recentLimit)
+            : matches;
+    final hiddenCount = matches.length - conversations.length;
 
     return SafeArea(
       child: Column(
@@ -252,7 +264,7 @@ class _ConversationListState extends ConsumerState<ConversationList> {
                       ),
                     ),
                   )
-                else
+                else ...[
                   for (final convo in conversations)
                     _ConversationTile(
                       conversation: convo,
@@ -265,6 +277,22 @@ class _ConversationListState extends ConsumerState<ConversationList> {
                         widget.onOpenChat?.call();
                       },
                     ),
+                  if (hiddenCount > 0)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                      child: TextButton.icon(
+                        onPressed: () {
+                          if (widget.onOpenChat != null) {
+                            widget.onOpenChat!();
+                          } else if (widget.inDrawer) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        icon: const Icon(Icons.history, size: 18),
+                        label: Text('View all ($hiddenCount more)'),
+                      ),
+                    ),
+                ],
               ],
             ),
           ),
