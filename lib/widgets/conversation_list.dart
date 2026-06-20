@@ -92,12 +92,17 @@ class _ConversationListState extends ConsumerState<ConversationList> {
   }
 
   Future<void> _openModels() async {
+    // Capture the (app-scoped) notifier before awaiting: popping the drawer
+    // below can dispose this widget while the picker is open, and reading `ref`
+    // after that throws. The notifier outlives the widget, so it's safe to call
+    // once the picker returns — and the pick isn't lost in drawer mode.
+    final settings = ref.read(settingsProvider.notifier);
     if (widget.inDrawer) Navigator.of(context).pop();
     final picked = await Navigator.of(context).push<OpenRouterModel>(
       MaterialPageRoute(builder: (_) => const ModelPickerScreen()),
     );
     if (picked != null) {
-      ref.read(settingsProvider.notifier).setDefaultModel(picked.id);
+      settings.setDefaultModel(picked.id);
     }
   }
 
@@ -121,6 +126,9 @@ class _ConversationListState extends ConsumerState<ConversationList> {
   }
 
   Future<void> _confirmClearAll(int count) async {
+    // Capture the notifier before awaiting the dialog, in case this widget is
+    // disposed while the dialog is open (reading `ref` afterward would throw).
+    final chat = ref.read(chatProvider.notifier);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -145,7 +153,7 @@ class _ConversationListState extends ConsumerState<ConversationList> {
       ),
     );
     if (confirmed == true) {
-      ref.read(chatProvider.notifier).deleteAllConversations();
+      chat.deleteAllConversations();
     }
   }
 
@@ -761,6 +769,7 @@ class _ChatMenu extends ConsumerWidget {
   }
 
   Future<void> _rename(BuildContext context, WidgetRef ref) async {
+    final chat = ref.read(chatProvider.notifier);
     final controller = TextEditingController(text: conversation.title);
     final newTitle = await showDialog<String>(
       context: context,
@@ -785,10 +794,7 @@ class _ChatMenu extends ConsumerWidget {
       ),
     );
     if (newTitle != null && newTitle.isNotEmpty) {
-      ref.read(chatProvider.notifier).renameConversation(
-            conversation.id,
-            newTitle,
-          );
+      chat.renameConversation(conversation.id, newTitle);
     }
   }
 
