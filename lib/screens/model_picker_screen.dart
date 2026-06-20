@@ -92,7 +92,7 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
   @override
   void initState() {
     super.initState();
-    _future = _load();
+    _startLoad();
   }
 
   Future<List<OpenRouterModel>> _load() {
@@ -105,9 +105,36 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
     return ref.read(openRouterServiceProvider).fetchModels(apiKey);
   }
 
+  /// Kicks off a catalogue load and, when it resolves, stashes the result and
+  /// seeds the detail preview in state — keeping `build` free of side effects.
+  void _startLoad() {
+    final future = _load();
+    _future = future;
+    future.then((models) {
+      if (!mounted) return;
+      setState(() {
+        _loaded = models;
+        _preview ??= _defaultPreview(models);
+      });
+    }).catchError((_) {
+      // The error is surfaced by the FutureBuilder; nothing to stash.
+    });
+  }
+
+  /// The model to preview by default: the configured default model if present,
+  /// otherwise the first in the catalogue.
+  OpenRouterModel? _defaultPreview(List<OpenRouterModel> models) {
+    if (models.isEmpty) return null;
+    final def = ref.read(settingsProvider).defaultModel;
+    for (final m in models) {
+      if (m.id == def) return m;
+    }
+    return models.first;
+  }
+
   void _reload() => setState(() {
         _preview = null;
-        _future = _load();
+        _startLoad();
       });
 
   /// Lets the user type an arbitrary model id (e.g. one too new to be listed).
@@ -252,16 +279,10 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
             return _ErrorView(message: '${snapshot.error}', onRetry: _reload);
           }
           final all = snapshot.data ?? [];
-          _loaded = all;
           final models = _visible(all, favorites);
-          // Default the detail preview to the current default model, else first.
-          _preview ??= () {
-            final def = ref.read(settingsProvider).defaultModel;
-            for (final m in all) {
-              if (m.id == def) return m;
-            }
-            return models.isNotEmpty ? models.first : null;
-          }();
+          // The preview is seeded in [_startLoad]; until then fall back to the
+          // default without mutating state during build.
+          final preview = _preview ?? _defaultPreview(all);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -297,7 +318,7 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
                               view: _view,
                               favorites: favorites,
                               multiSelect: widget.multiSelect,
-                              selectedId: _preview?.id,
+                              selectedId: preview?.id,
                               selectedIds: _selected,
                               onTap: (m) => widget.multiSelect
                                   ? _toggle(m)
@@ -314,10 +335,10 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
                       SizedBox(
                         width: 340,
                         child: _DetailPanel(
-                          model: _preview,
-                          onSelect: _preview == null
+                          model: preview,
+                          onSelect: preview == null
                               ? null
-                              : () => _select(_preview!),
+                              : () => _select(preview),
                         ),
                       ),
                     ],

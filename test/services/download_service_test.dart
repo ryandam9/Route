@@ -64,6 +64,31 @@ void main() {
     });
   });
 
+  group('DownloadService.uniqueFileName', () {
+    test('keeps the name when nothing collides', () {
+      expect(
+        DownloadService.uniqueFileName('wombat-reply.md', (_) => false),
+        'wombat-reply.md',
+      );
+    });
+
+    test('appends a numeric suffix to avoid overwriting', () {
+      final taken = {'wombat-reply.md', 'wombat-reply-001.md'};
+      expect(
+        DownloadService.uniqueFileName('wombat-reply.md', taken.contains),
+        'wombat-reply-002.md',
+      );
+    });
+
+    test('handles names without an extension', () {
+      final taken = {'notes'};
+      expect(
+        DownloadService.uniqueFileName('notes', taken.contains),
+        'notes-001',
+      );
+    });
+  });
+
   group('DownloadService.buildFileName', () {
     test('combines a sanitized base with the inferred extension', () {
       expect(

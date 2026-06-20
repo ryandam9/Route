@@ -50,7 +50,10 @@ final environmentProvider = Provider<Map<String, String>>((ref) {
   return const {};
 });
 
-/// The OpenRouter API client, wired to the debug log.
-final openRouterServiceProvider = Provider<OpenRouterService>(
-  (ref) => OpenRouterService(debug: ref.read(debugLogProvider.notifier)),
-);
+/// The OpenRouter API client, wired to the debug log. Its HTTP client is closed
+/// when the provider is disposed.
+final openRouterServiceProvider = Provider<OpenRouterService>((ref) {
+  final service = OpenRouterService(debug: ref.read(debugLogProvider.notifier));
+  ref.onDispose(service.dispose);
+  return service;
+});

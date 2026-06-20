@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 
 import '../models/attachment.dart';
 import '../providers/chat_provider.dart';
+import '../services/attachment_limits.dart';
 import '../services/wav.dart';
 import 'pressable_scale.dart';
 
@@ -91,6 +92,11 @@ class _ChatInputState extends ConsumerState<ChatInput> {
       final file = await openFile(acceptedTypeGroups: [group]);
       if (file == null) return;
       final bytes = await file.readAsBytes();
+      final tooLarge = attachmentSizeError(kind, bytes.length);
+      if (tooLarge != null) {
+        _toast(tooLarge);
+        return;
+      }
       final mime = _mimeFor(kind, file.name);
       setState(() {
         _attachments.add(MessageAttachment.fromBytes(

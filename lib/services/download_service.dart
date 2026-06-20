@@ -50,7 +50,13 @@ class DownloadService {
       if (isDesktop) {
         String? targetPath;
         if (!forceDialog && defaultDir != null && defaultDir.isNotEmpty) {
-          targetPath = '$defaultDir${Platform.pathSeparator}$fileName';
+          // Don't clobber an existing file: pick wombat-reply-001.md etc.
+          final sep = Platform.pathSeparator;
+          final unique = uniqueFileName(
+            fileName,
+            (name) => File('$defaultDir$sep$name').existsSync(),
+          );
+          targetPath = '$defaultDir$sep$unique';
         } else {
           final location = await getSaveLocation(suggestedName: fileName);
           targetPath = location?.path;
@@ -99,6 +105,21 @@ class DownloadService {
     final base = sanitize(baseName);
     final ext = extensionForMime(mimeType);
     return ext.isEmpty ? base : '$base.$ext';
+  }
+
+  /// Returns [fileName] unchanged when [exists] reports it is free, otherwise
+  /// the first available `name-NNN.ext` variant (e.g. `wombat-reply-001.md`).
+  /// [exists] is injected so the logic is testable without touching disk.
+  static String uniqueFileName(String fileName, bool Function(String) exists) {
+    if (!exists(fileName)) return fileName;
+    final dot = fileName.lastIndexOf('.');
+    final base = dot <= 0 ? fileName : fileName.substring(0, dot);
+    final ext = dot <= 0 ? '' : fileName.substring(dot); // includes the '.'
+    for (var i = 1; i < 1000; i++) {
+      final candidate = '$base-${i.toString().padLeft(3, '0')}$ext';
+      if (!exists(candidate)) return candidate;
+    }
+    return '$base-${DateTime.now().millisecondsSinceEpoch}$ext';
   }
 
   static String sanitize(String name) {

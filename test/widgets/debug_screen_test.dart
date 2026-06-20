@@ -38,6 +38,9 @@ void main() {
   setUp(() async {
     _container = await createContainer();
     addTearDown(_container.dispose);
+    // Capture is opt-in (off by default); these tests exercise the captured
+    // session path, so turn it on.
+    _container.read(debugLogProvider.notifier).enabled = true;
   });
 
   testWidgets('shows an empty state when there is no activity',
