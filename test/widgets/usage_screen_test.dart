@@ -27,6 +27,11 @@ void main() {
     });
     addTearDown(container.dispose);
 
+    // Tall viewport so the lazy ListView builds the lower panels too.
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(900, 1600);
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -44,5 +49,9 @@ void main() {
     expect(find.text('openai/gpt-4o'), findsOneWidget);
     // LabelValueRow renders labels uppercase.
     expect(find.text('REMAINING'), findsOneWidget);
+    // Section headers and the new usage-summary recap.
+    expect(find.text('BY MODEL'), findsOneWidget);
+    expect(find.text('USAGE SUMMARY'), findsOneWidget);
+    expect(find.text('AVG COST / REQUEST'), findsOneWidget);
   });
 }
