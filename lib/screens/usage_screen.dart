@@ -1,15 +1,15 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../models/usage.dart';
 import '../providers/usage_provider.dart';
 import '../widgets/ui_kit.dart';
 
 /// Shows OpenRouter usage accumulated during the current app session, plus the
-/// account credit balance.
+/// account credit balance — with Syncfusion charts for the balance and the
+/// per-model breakdowns.
 class UsageScreen extends ConsumerStatefulWidget {
   const UsageScreen({super.key});
 
@@ -34,6 +34,7 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
   @override
   Widget build(BuildContext context) {
     final usage = ref.watch(usageProvider);
+    final hasModels = usage.byModel.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -51,7 +52,6 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Headline KPIs.
           _CardGrid(
             cards: [
               StatCard(
@@ -69,6 +69,14 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
           const SizedBox(height: 16),
           _AccountPanel(money: _money),
           const SizedBox(height: 16),
+          if (hasModels) ...[
+            _CostByModelPanel(usage: usage, money: _money),
+            const SizedBox(height: 16),
+            _TokensByModelPanel(usage: usage),
+            const SizedBox(height: 16),
+            _TokenSharePanel(usage: usage),
+            const SizedBox(height: 16),
+          ],
           _ByModelPanel(usage: usage, money: _money, intFmt: _int),
           const SizedBox(height: 16),
           _UsageSummaryPanel(usage: usage, money: _money, intFmt: _int),
@@ -77,6 +85,19 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
     );
   }
 }
+
+/// A palette for per-model series, derived from the theme.
+List<Color> _palette(ColorScheme s) => [
+      s.primary,
+      s.tertiary,
+      s.secondary,
+      s.primaryContainer,
+      s.error,
+      s.tertiaryContainer,
+    ];
+
+/// Short model label for chart axes: the part after the vendor slash.
+String _shortModel(String id) => id.contains('/') ? id.split('/').last : id;
 
 /// Lays out a set of cards 4-across on wide layouts and 2-across when narrow.
 class _CardGrid extends StatelessWidget {
@@ -155,8 +176,8 @@ class _AccountPanel extends ConsumerWidget {
   }
 }
 
-/// The donut + Remaining/Used/Purchased breakdown, laid out side-by-side on
-/// wide screens and stacked when narrow.
+/// The balance doughnut chart + Remaining/Used/Purchased breakdown, side by
+/// side on wide screens and stacked when narrow.
 class _BalanceContent extends StatelessWidget {
   const _BalanceContent({required this.credits, required this.money});
 
@@ -165,13 +186,42 @@ class _BalanceContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fraction =
-        credits.totalCredits <= 0 ? 0.0 : credits.remaining / credits.totalCredits;
-
-    final donut = _BalanceDonut(
-      fraction: fraction.clamp(0.0, 1.0),
-      centerValue: money(credits.totalCredits, dp: 2),
-      label: 'Total balance',
+    final theme = Theme.of(context);
+    final donut = SizedBox(
+      width: 150,
+      height: 150,
+      child: SfCircularChart(
+        margin: EdgeInsets.zero,
+        annotations: [
+          CircularChartAnnotation(
+            widget: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(money(credits.totalCredits, dp: 2),
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                Text('Balance',
+                    style: theme.textTheme.labelSmall
+                        ?.copyWith(color: theme.colorScheme.outline)),
+              ],
+            ),
+          ),
+        ],
+        series: <DoughnutSeries<_Slice, String>>[
+          DoughnutSeries<_Slice, String>(
+            dataSource: [
+              _Slice('Remaining', credits.remaining, theme.colorScheme.primary),
+              _Slice('Used', credits.totalUsage,
+                  theme.colorScheme.surfaceContainerHighest),
+            ],
+            xValueMapper: (d, _) => d.label,
+            yValueMapper: (d, _) => d.value,
+            pointColorMapper: (d, _) => d.color,
+            innerRadius: '72%',
+            animationDuration: 0,
+          ),
+        ],
+      ),
     );
 
     final rows = Column(
@@ -215,91 +265,176 @@ class _BalanceContent extends StatelessWidget {
   }
 }
 
-/// A donut chart showing the remaining fraction of the account balance, with
-/// the total shown in the centre.
-class _BalanceDonut extends StatelessWidget {
-  const _BalanceDonut({
-    required this.fraction,
-    required this.centerValue,
-    required this.label,
-  });
+/// Bar chart of cost per model.
+class _CostByModelPanel extends StatelessWidget {
+  const _CostByModelPanel({required this.usage, required this.money});
 
-  final double fraction;
-  final String centerValue;
-  final String label;
+  final UsageState usage;
+  final String Function(double, {int dp}) money;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SizedBox(
-      width: 132,
-      height: 132,
-      child: CustomPaint(
-        painter: _DonutPainter(
-          fraction: fraction,
-          foreground: theme.colorScheme.primary,
-          background: theme.colorScheme.surfaceContainerHighest,
-        ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                centerValue,
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: theme.textTheme.labelSmall
-                    ?.copyWith(color: theme.colorScheme.outline),
-              ),
-            ],
+    final models = usage.byModel;
+    return SectionPanel(
+      title: 'Cost by model',
+      child: SizedBox(
+        height: 60.0 + models.length * 44,
+        child: SfCartesianChart(
+          margin: EdgeInsets.zero,
+          plotAreaBorderWidth: 0,
+          palette: _palette(theme.colorScheme),
+          primaryXAxis: _categoryAxis(theme),
+          primaryYAxis: NumericAxis(
+            numberFormat: NumberFormat.simpleCurrency(decimalDigits: 2),
+            labelStyle: _axisLabelStyle(theme),
+            axisLine: const AxisLine(width: 0),
+            majorTickLines: const MajorTickLines(width: 0),
           ),
+          series: <CartesianSeries<ModelUsage, String>>[
+            BarSeries<ModelUsage, String>(
+              dataSource: models,
+              xValueMapper: (m, _) => _shortModel(m.modelId),
+              yValueMapper: (m, _) => m.cost,
+              pointColorMapper: (m, i) =>
+                  _palette(theme.colorScheme)[i % 6],
+              dataLabelMapper: (m, _) => money(m.cost),
+              dataLabelSettings: DataLabelSettings(
+                isVisible: true,
+                textStyle: _axisLabelStyle(theme),
+              ),
+              animationDuration: 0,
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _DonutPainter extends CustomPainter {
-  _DonutPainter({
-    required this.fraction,
-    required this.foreground,
-    required this.background,
-  });
+/// Stacked column chart of input vs output tokens per model.
+class _TokensByModelPanel extends StatelessWidget {
+  const _TokensByModelPanel({required this.usage});
 
-  final double fraction;
-  final Color foreground;
-  final Color background;
+  final UsageState usage;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    const stroke = 12.0;
-    final center = size.center(Offset.zero);
-    final radius = (math.min(size.width, size.height) - stroke) / 2;
-    final rect = Rect.fromCircle(center: center, radius: radius);
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final models = usage.byModel;
+    return SectionPanel(
+      title: 'Tokens by model',
+      child: SizedBox(
+        height: 260,
+        child: SfCartesianChart(
+          margin: EdgeInsets.zero,
+          plotAreaBorderWidth: 0,
+          legend: Legend(
+            isVisible: true,
+            position: LegendPosition.top,
+            textStyle: _axisLabelStyle(theme),
+          ),
+          primaryXAxis: _categoryAxis(theme),
+          primaryYAxis: NumericAxis(
+            numberFormat: NumberFormat.compact(),
+            labelStyle: _axisLabelStyle(theme),
+            axisLine: const AxisLine(width: 0),
+            majorTickLines: const MajorTickLines(width: 0),
+          ),
+          series: <StackedColumnSeries<ModelUsage, String>>[
+            StackedColumnSeries<ModelUsage, String>(
+              name: 'Input',
+              dataSource: models,
+              xValueMapper: (m, _) => _shortModel(m.modelId),
+              yValueMapper: (m, _) => m.promptTokens,
+              color: theme.colorScheme.primary,
+              animationDuration: 0,
+            ),
+            StackedColumnSeries<ModelUsage, String>(
+              name: 'Output',
+              dataSource: models,
+              xValueMapper: (m, _) => _shortModel(m.modelId),
+              yValueMapper: (m, _) => m.completionTokens,
+              color: theme.colorScheme.tertiary,
+              animationDuration: 0,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-    final track = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..color = background;
-    final arc = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round
-      ..color = foreground;
+/// Pie chart of each model's share of total tokens.
+class _TokenSharePanel extends StatelessWidget {
+  const _TokenSharePanel({required this.usage});
 
-    canvas.drawCircle(center, radius, track);
-    canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * fraction, false, arc);
+  final UsageState usage;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final models = usage.byModel;
+    return SectionPanel(
+      title: 'Token share',
+      child: SizedBox(
+        height: 260,
+        child: SfCircularChart(
+          margin: EdgeInsets.zero,
+          palette: _palette(theme.colorScheme),
+          legend: Legend(
+            isVisible: true,
+            position: LegendPosition.bottom,
+            overflowMode: LegendItemOverflowMode.wrap,
+            textStyle: _axisLabelStyle(theme),
+          ),
+          series: <PieSeries<ModelUsage, String>>[
+            PieSeries<ModelUsage, String>(
+              dataSource: models,
+              xValueMapper: (m, _) => _shortModel(m.modelId),
+              yValueMapper: (m, _) => m.totalTokens,
+              dataLabelMapper: (m, _) =>
+                  '${(m.totalTokens / _totalTokens(models) * 100).toStringAsFixed(0)}%',
+              dataLabelSettings: DataLabelSettings(
+                isVisible: true,
+                labelPosition: ChartDataLabelPosition.outside,
+                textStyle: _axisLabelStyle(theme),
+                connectorLineSettings:
+                    const ConnectorLineSettings(type: ConnectorType.curve),
+              ),
+              animationDuration: 0,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  @override
-  bool shouldRepaint(_DonutPainter old) =>
-      old.fraction != fraction ||
-      old.foreground != foreground ||
-      old.background != background;
+  int _totalTokens(List<ModelUsage> models) {
+    final total = models.fold<int>(0, (sum, m) => sum + m.totalTokens);
+    return total == 0 ? 1 : total;
+  }
+}
+
+CategoryAxis _categoryAxis(ThemeData theme) => CategoryAxis(
+      labelStyle: _axisLabelStyle(theme),
+      labelIntersectAction: AxisLabelIntersectAction.wrap,
+      majorGridLines: const MajorGridLines(width: 0),
+      axisLine: AxisLine(width: 0.5, color: theme.colorScheme.outlineVariant),
+      majorTickLines: const MajorTickLines(width: 0),
+    );
+
+TextStyle _axisLabelStyle(ThemeData theme) => TextStyle(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontSize: 11,
+    );
+
+/// Slice datum for the balance doughnut.
+class _Slice {
+  _Slice(this.label, this.value, this.color);
+  final String label;
+  final double value;
+  final Color color;
 }
 
 class _ByModelPanel extends StatelessWidget {
