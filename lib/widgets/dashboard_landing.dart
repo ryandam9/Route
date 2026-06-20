@@ -76,17 +76,18 @@ class DashboardLanding extends ConsumerWidget {
                     const Divider(height: 20),
                     const _StartStep(
                       step: 2,
-                      icon: Icons.grid_view_outlined,
-                      title: 'Pick a model in the header',
+                      icon: Icons.add_comment_outlined,
+                      title: 'Start a new chat',
                       description:
-                          'Choose from 200+ models available on OpenRouter.',
+                          'Tap "New chat" to open a conversation.',
                     ),
                     const Divider(height: 20),
                     const _StartStep(
                       step: 3,
                       icon: Icons.send_outlined,
-                      title: 'Type a message to begin',
-                      description: 'Ask anything. Wombat is ready to help!',
+                      title: 'Pick a model and send',
+                      description: 'Choose a model in the header, then type '
+                          'your first message.',
                     ),
                   ],
                 ),

@@ -34,12 +34,18 @@ class ChatView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final chat = ref.watch(chatProvider);
     final convo = chat.current;
+    // On the initial-launch dashboard (no conversation started yet) there is
+    // nothing to type into or pick a model for: hide the model selector, the
+    // header "new chat" action and the composer. Starting a chat from "New
+    // chat" (sidebar/drawer) brings them back. See issue #100.
+    final hasChat = convo != null;
 
     return Column(
       children: [
         _Header(
           showMenuButton: showMenuButton,
           onExpandSidebar: onExpandSidebar,
+          showChatActions: hasChat,
         ),
         const Divider(height: 1),
         Expanded(
@@ -76,16 +82,24 @@ class ChatView extends ConsumerWidget {
                   ),
                 ),
         ),
-        const ChatInput(),
+        if (hasChat) const ChatInput(),
       ],
     );
   }
 }
 
 class _Header extends ConsumerWidget {
-  const _Header({required this.showMenuButton, this.onExpandSidebar});
+  const _Header({
+    required this.showMenuButton,
+    required this.showChatActions,
+    this.onExpandSidebar,
+  });
 
   final bool showMenuButton;
+
+  /// Whether to show the model selector and the "new chat" action. Hidden on
+  /// the initial-launch dashboard, where no conversation is active yet.
+  final bool showChatActions;
   final VoidCallback? onExpandSidebar;
 
   @override
@@ -112,24 +126,27 @@ class _Header extends ConsumerWidget {
                 tooltip: 'Show sidebar',
                 onPressed: onExpandSidebar,
               ),
-            const Expanded(child: ModelSelector()),
-            if (responding && animate)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+            if (showChatActions) ...[
+              const Expanded(child: ModelSelector()),
+              if (responding && animate)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
+              const SizedBox(width: 4),
+              // New chat: a one-tap action once a conversation is active.
+              IconButton(
+                icon: const Icon(Icons.add_comment_outlined),
+                tooltip: 'New chat',
+                onPressed: () =>
+                    ref.read(chatProvider.notifier).newConversation(),
               ),
-            const SizedBox(width: 4),
-            // New chat stays a one-tap action everywhere.
-            IconButton(
-              icon: const Icon(Icons.add_comment_outlined),
-              tooltip: 'New chat',
-              onPressed: () =>
-                  ref.read(chatProvider.notifier).newConversation(),
-            ),
+            ] else
+              const Spacer(),
             // Secondary actions (Usage, Debug, Settings, …) live in the sidebar
             // navigation rail on wide layouts. Show them in a header overflow
             // menu only when the sidebar isn't available: on phones (drawer) or
