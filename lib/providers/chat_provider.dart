@@ -184,9 +184,13 @@ class ChatNotifier extends Notifier<ChatState> {
     await _persist();
   }
 
+  /// Sets the model for the current conversation. This is a no-op once the
+  /// conversation has messages — a chat's model is fixed once it has started so
+  /// a single history never mixes responses from different models.
   void setModelForCurrent(String modelId, {bool? supportsImageOutput}) {
     final convo = _current;
     if (convo == null) return;
+    if (convo.messages.isNotEmpty) return;
     convo.modelId = modelId;
     if (supportsImageOutput != null) {
       convo.supportsImageOutput = supportsImageOutput;

@@ -71,6 +71,20 @@ void main() {
       chat.setModelForCurrent('openai/gpt-4o');
       expect(chat.current!.modelId, 'openai/gpt-4o');
     });
+
+    test('setModelForCurrent is a no-op once the chat has messages', () async {
+      final service = FakeOpenRouterService(chunks: ['ok']);
+      final chat = await buildChat(service: service);
+      chat.newConversation();
+      chat.setModelForCurrent('openai/gpt-4o');
+
+      await chat.sendMessage('hello');
+      expect(chat.current!.messages, isNotEmpty);
+
+      // The model is now fixed for this conversation.
+      chat.setModelForCurrent('anthropic/claude');
+      expect(chat.current!.modelId, 'openai/gpt-4o');
+    });
   });
 
   group('sendMessage', () {

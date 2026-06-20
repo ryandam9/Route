@@ -71,7 +71,11 @@ class _ModelSelectorState extends ConsumerState<ModelSelector>
 
   @override
   Widget build(BuildContext context) {
-    final modelId = ref.watch(chatProvider).current?.modelId ?? '—';
+    final current = ref.watch(chatProvider).current;
+    final modelId = current?.modelId ?? '—';
+    // A chat's model is fixed once it has started (has messages); the pill then
+    // becomes a read-only label so the thread stays on one model.
+    final locked = current != null && current.messages.isNotEmpty;
     final continuous =
         ref.watch(settingsProvider.select((s) => s.continuousModelBorder));
     _syncAnimation(modelId, continuous);
@@ -109,28 +113,40 @@ class _ModelSelectorState extends ConsumerState<ModelSelector>
           color: scheme.surface,
           borderRadius: BorderRadius.circular(radius - 1.6),
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: _openPicker,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.smart_toy_outlined,
-                      size: 18, color: scheme.primary),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 240),
-                      child: Text(
-                        modelId,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelLarge,
+          child: Tooltip(
+            message: locked
+                ? 'This chat is using $modelId.\n'
+                    'Start a new chat to use a different model.'
+                : 'Change model',
+            child: InkWell(
+              // Locked once the chat has started, so the model can't change
+              // mid-thread.
+              onTap: locked ? null : _openPicker,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      locked ? Icons.lock_outline : Icons.smart_toy_outlined,
+                      size: 18,
+                      color: locked ? scheme.outline : scheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 240),
+                        child: Text(
+                          modelId,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
