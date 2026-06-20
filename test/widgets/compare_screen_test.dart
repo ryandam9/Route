@@ -61,7 +61,10 @@ void main() {
     Future<void> addModel(String name) async {
       await tester.tap(find.text('Add model'));
       await tester.pumpAndSettle();
+      // Multi-select picker: tick the model, then confirm with the FAB.
       await tester.tap(find.text(name).first);
+      await tester.pump();
+      await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
     }
 
@@ -80,6 +83,23 @@ void main() {
     expect(container.read(usageProvider).cost, closeTo(0.02, 1e-9));
   });
 
+  testWidgets('adds several models in one trip through the picker',
+      (tester) async {
+    await pump(tester);
+
+    await tester.tap(find.text('Add model'));
+    await tester.pumpAndSettle();
+    // Tick two models, then confirm once.
+    await tester.tap(find.text('Alpha').first);
+    await tester.tap(find.text('Beta').first);
+    await tester.pump();
+    await tester.tap(find.byType(FloatingActionButton)); // "Add 2"
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(InputChip, 'Alpha'), findsOneWidget);
+    expect(find.widgetWithText(InputChip, 'Beta'), findsOneWidget);
+  });
+
   testWidgets('preserves the session after leaving and returning',
       (tester) async {
     await pump(tester);
@@ -87,7 +107,10 @@ void main() {
     Future<void> addModel(String name) async {
       await tester.tap(find.text('Add model'));
       await tester.pumpAndSettle();
+      // Multi-select picker: tick the model, then confirm with the FAB.
       await tester.tap(find.text(name).first);
+      await tester.pump();
+      await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
     }
 

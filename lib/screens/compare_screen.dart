@@ -41,11 +41,21 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
   }
 
   Future<void> _addModel() async {
-    final picked = await Navigator.of(context).push<OpenRouterModel>(
-      MaterialPageRoute(builder: (_) => const ModelPickerScreen()),
+    final already =
+        ref.read(compareProvider).models.map((m) => m.id).toSet();
+    final picked = await Navigator.of(context).push<List<OpenRouterModel>>(
+      MaterialPageRoute(
+        builder: (_) => ModelPickerScreen(
+          multiSelect: true,
+          excludeIds: already,
+        ),
+      ),
     );
     if (picked == null) return;
-    ref.read(compareProvider.notifier).addModel(picked);
+    final notifier = ref.read(compareProvider.notifier);
+    for (final m in picked) {
+      notifier.addModel(m);
+    }
   }
 
   void _run() {

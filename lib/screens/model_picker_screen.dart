@@ -44,17 +44,30 @@ enum _Filter {
 }
 
 /// Fetches the OpenRouter model catalogue and lets the user browse, compare
-/// and pick one.
+/// and pick one (or several).
 ///
 /// By default (pushed as a route) it pops with the selected [OpenRouterModel].
 /// When [onPicked] is provided it is embedded (e.g. in the desktop dashboard):
 /// selecting a model calls [onPicked] instead of popping the route.
+/// When [multiSelect] is true, the user can tick several models and the screen
+/// pops with a `List<OpenRouterModel>`; [excludeIds] are hidden from the list.
 class ModelPickerScreen extends ConsumerStatefulWidget {
-  const ModelPickerScreen({super.key, this.onPicked});
+  const ModelPickerScreen({
+    super.key,
+    this.onPicked,
+    this.multiSelect = false,
+    this.excludeIds = const {},
+  });
 
   /// When set, the screen is used inline: a selection calls this instead of
   /// `Navigator.pop`.
   final void Function(OpenRouterModel model)? onPicked;
+
+  /// Allow picking several models at once; pops with `List<OpenRouterModel>`.
+  final bool multiSelect;
+
+  /// Model ids to hide (e.g. already added to a comparison).
+  final Set<String> excludeIds;
 
   @override
   ConsumerState<ModelPickerScreen> createState() => _ModelPickerScreenState();
@@ -62,6 +75,9 @@ class ModelPickerScreen extends ConsumerStatefulWidget {
 
 class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
   static const double _detailBreakpoint = 1000;
+
+  final Set<String> _selected = <String>{};
+  List<OpenRouterModel> _loaded = const [];
 
   late Future<List<OpenRouterModel>> _future;
   String _query = '';
@@ -132,6 +148,7 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
   ) {
     final q = _query.toLowerCase();
     final list = models.where((m) {
+      if (widget.excludeIds.contains(m.id)) return false;
       if (_filters.isNotEmpty && !_filters.every((f) => f.matches(m))) {
         return false;
       }
@@ -168,6 +185,16 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
     }
   }
 
+  void _toggle(OpenRouterModel model) => setState(() {
+        if (!_selected.remove(model.id)) _selected.add(model.id);
+      });
+
+  void _confirmMultiSelect(List<OpenRouterModel> all) {
+    final picked =
+        all.where((m) => _selected.contains(m.id)).toList(growable: false);
+    Navigator.of(context).pop(picked);
+  }
+
   void _toggleFilter(_Filter f) {
     setState(() {
       if (f == _Filter.all) {
@@ -181,12 +208,26 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
   @override
   Widget build(BuildContext context) {
     final favorites = ref.watch(settingsProvider.select((s) => s.favoriteModels));
-    final showDetail =
+    // The detail preview pane is for single-pick browsing; in multi-select the
+    // whole area is the (tickable) grid.
+    final showDetail = !widget.multiSelect &&
         MediaQuery.of(context).size.width >= _detailBreakpoint;
 
     return Scaffold(
+      floatingActionButton: widget.multiSelect
+          ? FloatingActionButton.extended(
+              onPressed: _selected.isEmpty
+                  ? null
+                  : () => _confirmMultiSelect(_loaded),
+              icon: const Icon(Icons.add),
+              label: Text('Add ${_selected.length}'),
+              backgroundColor: _selected.isEmpty
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : null,
+            )
+          : null,
       appBar: AppBar(
-        title: const Text('Choose a model'),
+        title: Text(widget.multiSelect ? 'Add models' : 'Choose a model'),
         actions: [
           IconButton(
             icon: const Icon(Icons.keyboard),
@@ -210,6 +251,7 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
             return _ErrorView(message: '${snapshot.error}', onRetry: _reload);
           }
           final all = snapshot.data ?? [];
+          _loaded = all;
           final models = _visible(all, favorites);
           // Default the detail preview to the current default model, else first.
           _preview ??= () {
@@ -246,10 +288,14 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
                               models: models,
                               view: _view,
                               favorites: favorites,
+                              multiSelect: widget.multiSelect,
                               selectedId: _preview?.id,
-                              onTap: (m) => showDetail
-                                  ? setState(() => _preview = m)
-                                  : _select(m),
+                              selectedIds: _selected,
+                              onTap: (m) => widget.multiSelect
+                                  ? _toggle(m)
+                                  : (showDetail
+                                      ? setState(() => _preview = m)
+                                      : _select(m)),
                               onToggleFavorite: (m) => ref
                                   .read(settingsProvider.notifier)
                                   .toggleFavoriteModel(m.id),
@@ -458,6 +504,8 @@ class _ModelCollection extends StatelessWidget {
     required this.selectedId,
     required this.onTap,
     required this.onToggleFavorite,
+    this.multiSelect = false,
+    this.selectedIds = const {},
   });
 
   final List<OpenRouterModel> models;
@@ -466,6 +514,11 @@ class _ModelCollection extends StatelessWidget {
   final String? selectedId;
   final ValueChanged<OpenRouterModel> onTap;
   final ValueChanged<OpenRouterModel> onToggleFavorite;
+  final bool multiSelect;
+  final Set<String> selectedIds;
+
+  bool _isSelected(OpenRouterModel m) =>
+      multiSelect ? selectedIds.contains(m.id) : m.id == selectedId;
 
   @override
   Widget build(BuildContext context) {
@@ -477,7 +530,8 @@ class _ModelCollection extends StatelessWidget {
         itemBuilder: (context, i) => _ModelCard(
           model: models[i],
           dense: true,
-          selected: models[i].id == selectedId,
+          selected: _isSelected(models[i]),
+          multiSelect: multiSelect,
           favorite: favorites.contains(models[i].id),
           onTap: () => onTap(models[i]),
           onToggleFavorite: () => onToggleFavorite(models[i]),
@@ -500,7 +554,8 @@ class _ModelCollection extends StatelessWidget {
         itemCount: models.length,
         itemBuilder: (context, i) => _ModelCard(
           model: models[i],
-          selected: models[i].id == selectedId,
+          selected: _isSelected(models[i]),
+          multiSelect: multiSelect,
           favorite: favorites.contains(models[i].id),
           onTap: () => onTap(models[i]),
           onToggleFavorite: () => onToggleFavorite(models[i]),
@@ -518,6 +573,7 @@ class _ModelCard extends StatelessWidget {
     required this.onTap,
     required this.onToggleFavorite,
     this.dense = false,
+    this.multiSelect = false,
   });
 
   final OpenRouterModel model;
@@ -526,6 +582,7 @@ class _ModelCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onToggleFavorite;
   final bool dense;
+  final bool multiSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -535,6 +592,14 @@ class _ModelCard extends StatelessWidget {
     final header = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (multiSelect) ...[
+          Icon(
+            selected ? Icons.check_circle : Icons.radio_button_unchecked,
+            color: selected ? scheme.primary : scheme.outline,
+            size: 22,
+          ),
+          const SizedBox(width: 8),
+        ],
         _VendorAvatar(vendor: model.vendor, size: dense ? 36 : 44),
         const SizedBox(width: 10),
         Expanded(
