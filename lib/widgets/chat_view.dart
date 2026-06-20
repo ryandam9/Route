@@ -254,7 +254,12 @@ class _MessageListState extends ConsumerState<_MessageList> {
 
   @override
   Widget build(BuildContext context) {
-    final convo = ref.watch(chatProvider).current!;
+    // The current conversation can become null while this list is still in the
+    // tree — e.g. deleting the active chat keeps this widget alive for the
+    // AnimatedSwitcher's fade-out. Render nothing rather than dereferencing
+    // null.
+    final convo = ref.watch(chatProvider).current;
+    if (convo == null) return const SizedBox.shrink();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     // Messages are selectable via the app-wide SelectionArea (see app.dart).
