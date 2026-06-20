@@ -1,3 +1,4 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +6,28 @@ import 'models/app_font.dart';
 import 'providers/settings_provider.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
+
+/// Smooth Material-motion page transitions on every platform (pushed routes
+/// fade through + slide along the shared axis).
+const _pageTransitions = PageTransitionsTheme(
+  builders: {
+    TargetPlatform.android: SharedAxisPageTransitionsBuilder(
+      transitionType: SharedAxisTransitionType.horizontal,
+    ),
+    TargetPlatform.iOS: SharedAxisPageTransitionsBuilder(
+      transitionType: SharedAxisTransitionType.horizontal,
+    ),
+    TargetPlatform.linux: SharedAxisPageTransitionsBuilder(
+      transitionType: SharedAxisTransitionType.horizontal,
+    ),
+    TargetPlatform.macOS: SharedAxisPageTransitionsBuilder(
+      transitionType: SharedAxisTransitionType.horizontal,
+    ),
+    TargetPlatform.windows: SharedAxisPageTransitionsBuilder(
+      transitionType: SharedAxisTransitionType.horizontal,
+    ),
+  },
+);
 
 class WombatApp extends ConsumerWidget {
   const WombatApp({super.key});
@@ -55,6 +78,7 @@ class WombatApp extends ConsumerWidget {
     );
     return base.copyWith(
       textTheme: headed,
+      pageTransitionsTheme: _pageTransitions,
       appBarTheme: base.appBarTheme.copyWith(
         titleTextStyle: (base.appBarTheme.titleTextStyle ?? t.titleLarge)
             ?.copyWith(fontFamily: fam),

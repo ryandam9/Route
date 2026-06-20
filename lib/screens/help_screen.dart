@@ -10,8 +10,8 @@ class HelpScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Help & Troubleshoot')),
-      body: _ResponsiveSections(
-        children: const [
+      body: const _ResponsiveSections(
+        children: [
           _Section(
             title: 'Voice & audio',
             items: [

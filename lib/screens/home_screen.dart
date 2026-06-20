@@ -1,3 +1,4 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -96,7 +97,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _CollapsedRail(
                 onExpand: () => setState(() => _collapsed = false),
               ),
-            Expanded(child: _sectionPane()),
+            Expanded(
+              child: PageTransitionSwitcher(
+                transitionBuilder: (child, primary, secondary) =>
+                    FadeThroughTransition(
+                  animation: primary,
+                  secondaryAnimation: secondary,
+                  child: child,
+                ),
+                child: KeyedSubtree(
+                  key: ValueKey(_section),
+                  child: _sectionPane(),
+                ),
+              ),
+            ),
           ],
         ),
       );
