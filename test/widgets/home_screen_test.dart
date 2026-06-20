@@ -58,6 +58,27 @@ void main() {
     }
   });
 
+  testWidgets('desktop nav swaps the centre pane in place (no new route)',
+      (tester) async {
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.pump();
+
+    await tester.tap(find.text('Usage'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    // The Usage section is shown in the centre pane...
+    expect(find.text('Session usage'), findsOneWidget);
+    // ...while the sidebar stays visible (it was not covered by a new page)...
+    expect(find.text('Compare models'), findsOneWidget);
+    // ...and there is no back button (nothing was pushed).
+    expect(find.byTooltip('Back'), findsNothing);
+  });
+
   testWidgets('collapsing hides the sidebar and expanding restores it',
       (tester) async {
     tester.view.devicePixelRatio = 1.0;

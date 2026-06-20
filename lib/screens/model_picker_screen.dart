@@ -44,9 +44,17 @@ enum _Filter {
 }
 
 /// Fetches the OpenRouter model catalogue and lets the user browse, compare
-/// and pick one. Pops with the selected [OpenRouterModel].
+/// and pick one.
+///
+/// By default (pushed as a route) it pops with the selected [OpenRouterModel].
+/// When [onPicked] is provided it is embedded (e.g. in the desktop dashboard):
+/// selecting a model calls [onPicked] instead of popping the route.
 class ModelPickerScreen extends ConsumerStatefulWidget {
-  const ModelPickerScreen({super.key});
+  const ModelPickerScreen({super.key, this.onPicked});
+
+  /// When set, the screen is used inline: a selection calls this instead of
+  /// `Navigator.pop`.
+  final void Function(OpenRouterModel model)? onPicked;
 
   @override
   ConsumerState<ModelPickerScreen> createState() => _ModelPickerScreenState();
@@ -114,7 +122,7 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
       ),
     );
     if (id != null && id.isNotEmpty && mounted) {
-      Navigator.of(context).pop(OpenRouterModel(id: id, name: id));
+      _select(OpenRouterModel(id: id, name: id));
     }
   }
 
@@ -151,7 +159,14 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
     return [...favs, ...rest];
   }
 
-  void _select(OpenRouterModel model) => Navigator.of(context).pop(model);
+  void _select(OpenRouterModel model) {
+    final onPicked = widget.onPicked;
+    if (onPicked != null) {
+      onPicked(model);
+    } else {
+      Navigator.of(context).pop(model);
+    }
+  }
 
   void _toggleFilter(_Filter f) {
     setState(() {
