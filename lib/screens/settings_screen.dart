@@ -1,3 +1,4 @@
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -306,6 +307,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onSelectionChanged: (s) =>
               ref.read(settingsProvider.notifier).setThemeMode(s.first),
         ),
+        const SizedBox(height: 16),
+        Text('ACCENT COLOR', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: 10),
+        _AccentColorPicker(
+          selected: settings.seedColor,
+          onChanged: (c) => ref.read(settingsProvider.notifier).setSeedColor(c),
+        ),
+        const SizedBox(height: 4),
         SwitchListTile(
           value: settings.animateModelIndicator,
           onChanged: (v) =>
@@ -597,6 +606,151 @@ class _Step extends StatelessWidget {
         const SizedBox(height: 6),
         Text(label, style: Theme.of(context).textTheme.labelSmall),
       ],
+    );
+  }
+}
+
+/// Curated accent-colour swatches plus a custom RGB picker. Both themes are
+/// regenerated from the chosen colour.
+class _AccentColorPicker extends StatelessWidget {
+  const _AccentColorPicker({required this.selected, required this.onChanged});
+
+  final Color selected;
+  final ValueChanged<Color> onChanged;
+
+  static const _presets = <Color>[
+    Color(0xFF5A4FCF), // indigo (default)
+    Color(0xFF7C3AED), // violet
+    Color(0xFF2563EB), // blue
+    Color(0xFF0891B2), // cyan
+    Color(0xFF0D9488), // teal
+    Color(0xFF16A34A), // green
+    Color(0xFFCA8A04), // amber
+    Color(0xFFEA580C), // orange
+    Color(0xFFDC2626), // red
+    Color(0xFFDB2777), // pink
+    Color(0xFF475569), // slate
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final sel = selected.toARGB32();
+    final isPreset = _presets.any((c) => c.toARGB32() == sel);
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        for (final c in _presets)
+          _ColorDot(
+            color: c,
+            selected: c.toARGB32() == sel,
+            onTap: () => onChanged(c),
+          ),
+        _CustomColorDot(
+          selected: !isPreset,
+          current: selected,
+          onPicked: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkResponse(
+      onTap: onTap,
+      radius: 26,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected ? scheme.onSurface : scheme.outlineVariant,
+            width: selected ? 3 : 1,
+          ),
+        ),
+        child: selected
+            ? const Icon(Icons.check, color: Colors.white, size: 20)
+            : null,
+      ),
+    );
+  }
+}
+
+/// Rainbow swatch that opens a dialog to choose any colour.
+class _CustomColorDot extends StatelessWidget {
+  const _CustomColorDot({
+    required this.selected,
+    required this.current,
+    required this.onPicked,
+  });
+
+  final bool selected;
+  final Color current;
+  final ValueChanged<Color> onPicked;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkResponse(
+      onTap: () async {
+        final start = selected ? current : scheme.primary;
+        final picked = await showColorPickerDialog(
+          context,
+          start,
+          title: Text('Accent colour',
+              style: Theme.of(context).textTheme.titleMedium),
+          pickersEnabled: const {
+            ColorPickerType.primary: true,
+            ColorPickerType.accent: true,
+            ColorPickerType.wheel: true,
+          },
+          enableShadesSelection: true,
+          showColorCode: true,
+          colorCodeHasColor: true,
+          constraints: const BoxConstraints(
+              minHeight: 480, minWidth: 320, maxWidth: 360),
+        );
+        onPicked(picked);
+      },
+      radius: 26,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const SweepGradient(colors: [
+            Color(0xFFEF4444),
+            Color(0xFFEAB308),
+            Color(0xFF22C55E),
+            Color(0xFF06B6D4),
+            Color(0xFF6366F1),
+            Color(0xFFEC4899),
+            Color(0xFFEF4444),
+          ]),
+          border: Border.all(
+            color: selected ? scheme.onSurface : scheme.outlineVariant,
+            width: selected ? 3 : 1,
+          ),
+        ),
+        child: Icon(selected ? Icons.check : Icons.tune,
+            color: Colors.white, size: 20),
+      ),
     );
   }
 }
