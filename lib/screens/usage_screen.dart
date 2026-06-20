@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../models/usage.dart';
 import '../providers/usage_provider.dart';
+import '../widgets/motion.dart';
 import '../widgets/shimmer.dart';
 import '../widgets/ui_kit.dart';
 
@@ -37,6 +38,7 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
     final usage = ref.watch(usageProvider);
     final hasModels = usage.byModel.isNotEmpty;
     final error = Theme.of(context).colorScheme.error;
+    final chartDuration = Motion.of(context, ref).chart;
 
     return Scaffold(
       appBar: AppBar(
@@ -75,11 +77,12 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
           _AccountPanel(money: _money),
           const SizedBox(height: 16),
           if (hasModels) ...[
-            _CostByModelPanel(usage: usage, money: _money),
+            _CostByModelPanel(
+                usage: usage, money: _money, chartDuration: chartDuration),
             const SizedBox(height: 16),
-            _TokensByModelPanel(usage: usage),
+            _TokensByModelPanel(usage: usage, chartDuration: chartDuration),
             const SizedBox(height: 16),
-            _TokenSharePanel(usage: usage),
+            _TokenSharePanel(usage: usage, chartDuration: chartDuration),
             const SizedBox(height: 16),
           ],
           _ByModelPanel(usage: usage, money: _money, intFmt: _int),
@@ -261,7 +264,8 @@ class _BalanceContent extends StatelessWidget {
                       ),
                     ],
             ),
-            duration: Duration.zero,
+            duration: Motion.platform(context).chart,
+            curve: Curves.easeOutCubic,
           ),
           Column(
             mainAxisSize: MainAxisSize.min,
@@ -321,7 +325,13 @@ class _BalanceContent extends StatelessWidget {
 
 /// Bar chart of cost per model.
 class _CostByModelPanel extends StatelessWidget {
-  const _CostByModelPanel({required this.usage, required this.money});
+  const _CostByModelPanel({
+    required this.usage,
+    required this.money,
+    required this.chartDuration,
+  });
+
+  final Duration chartDuration;
 
   final UsageState usage;
   final String Function(double, {int dp}) money;
@@ -338,10 +348,26 @@ class _CostByModelPanel extends StatelessWidget {
       child: SizedBox(
         height: 240,
         child: BarChart(
+          duration: chartDuration,
+          curve: Curves.easeOutCubic,
           BarChartData(
             alignment: BarChartAlignment.spaceAround,
             maxY: maxCost <= 0 ? 1 : maxCost * 1.25,
-            barTouchData: const BarTouchData(enabled: false),
+            barTouchData: BarTouchData(
+              enabled: true,
+              touchTooltipData: BarTouchTooltipData(
+                getTooltipColor: (_) => theme.colorScheme.inverseSurface,
+                getTooltipItem: (group, _, rod, __) => BarTooltipItem(
+                  '${_shortModel(models[group.x.toInt()].modelId)}\n'
+                  '${money(rod.toY)}',
+                  TextStyle(
+                    color: theme.colorScheme.onInverseSurface,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
             gridData: FlGridData(
               show: true,
               drawVerticalLine: false,
@@ -392,9 +418,10 @@ class _CostByModelPanel extends StatelessWidget {
 
 /// Stacked column chart of input vs output tokens per model.
 class _TokensByModelPanel extends StatelessWidget {
-  const _TokensByModelPanel({required this.usage});
+  const _TokensByModelPanel({required this.usage, required this.chartDuration});
 
   final UsageState usage;
+  final Duration chartDuration;
 
   @override
   Widget build(BuildContext context) {
@@ -416,10 +443,30 @@ class _TokensByModelPanel extends StatelessWidget {
           SizedBox(
             height: 230,
             child: BarChart(
+              duration: chartDuration,
+              curve: Curves.easeOutCubic,
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
                 maxY: maxTokens <= 0 ? 1 : maxTokens * 1.25,
-                barTouchData: const BarTouchData(enabled: false),
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => theme.colorScheme.inverseSurface,
+                    getTooltipItem: (group, _, rod, __) {
+                      final m = models[group.x.toInt()];
+                      return BarTooltipItem(
+                        '${_shortModel(m.modelId)}\n'
+                        '${NumberFormat.compact().format(m.promptTokens)} in · '
+                        '${NumberFormat.compact().format(m.completionTokens)} out',
+                        TextStyle(
+                          color: theme.colorScheme.onInverseSurface,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
@@ -483,9 +530,10 @@ class _TokensByModelPanel extends StatelessWidget {
 
 /// Pie chart of each model's share of total tokens.
 class _TokenSharePanel extends StatelessWidget {
-  const _TokenSharePanel({required this.usage});
+  const _TokenSharePanel({required this.usage, required this.chartDuration});
 
   final UsageState usage;
+  final Duration chartDuration;
 
   @override
   Widget build(BuildContext context) {
@@ -520,7 +568,8 @@ class _TokenSharePanel extends StatelessWidget {
                     ),
                 ],
               ),
-              duration: Duration.zero,
+              duration: chartDuration,
+              curve: Curves.easeOutCubic,
             ),
           ),
           const SizedBox(height: 12),
