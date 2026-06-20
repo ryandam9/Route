@@ -7,6 +7,7 @@ import '../models/openrouter_model.dart';
 import '../providers/app_providers.dart';
 import '../providers/settings_provider.dart';
 import '../services/openrouter_service.dart';
+import '../widgets/motion.dart';
 import '../widgets/shimmer.dart';
 import '../widgets/ui_kit.dart';
 
@@ -304,6 +305,7 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
           // The preview is seeded in [_startLoad]; until then fall back to the
           // default without mutating state during build.
           final preview = _preview ?? _defaultPreview(all);
+          final motion = Motion.of(context, ref);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -319,6 +321,18 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
                 onToggleDirection: () => setState(() => _asc = !_asc),
               ),
               _FilterBar(active: _filters, onToggled: _toggleFilter),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '${models.length} '
+                    '${models.length == 1 ? 'model' : 'models'} found',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.outline),
+                  ),
+                ),
+              ),
               if (widget.multiSelect && _selected.isNotEmpty)
                 _SelectedBar(
                   models: all
@@ -334,32 +348,44 @@ class _ModelPickerScreenState extends ConsumerState<ModelPickerScreen> {
                     Expanded(
                       child: models.isEmpty
                           ? const Center(child: Text('No matching models'))
-                          : _ModelCollection(
-                              models: models,
-                              view: _view,
-                              favorites: favorites,
-                              multiSelect: widget.multiSelect,
-                              selectedId: preview?.id,
-                              selectedIds: _selected,
-                              onTap: (m) => widget.multiSelect
-                                  ? _toggle(m)
-                                  : (showDetail
-                                      ? setState(() => _preview = m)
-                                      : _showModelSheet(m)),
-                              onToggleFavorite: (m) => ref
-                                  .read(settingsProvider.notifier)
-                                  .toggleFavoriteModel(m.id),
+                          : AnimatedSwitcher(
+                              duration: motion.medium,
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              child: _ModelCollection(
+                                // Cross-fade only when toggling grid⇄list, not
+                                // on every search keystroke.
+                                key: ValueKey(_view),
+                                models: models,
+                                view: _view,
+                                favorites: favorites,
+                                multiSelect: widget.multiSelect,
+                                selectedId: preview?.id,
+                                selectedIds: _selected,
+                                onTap: (m) => widget.multiSelect
+                                    ? _toggle(m)
+                                    : (showDetail
+                                        ? setState(() => _preview = m)
+                                        : _showModelSheet(m)),
+                                onToggleFavorite: (m) => ref
+                                    .read(settingsProvider.notifier)
+                                    .toggleFavoriteModel(m.id),
+                              ),
                             ),
                     ),
                     if (showDetail) ...[
                       const VerticalDivider(width: 1),
                       SizedBox(
                         width: 340,
-                        child: _DetailPanel(
-                          model: preview,
-                          onSelect: preview == null
-                              ? null
-                              : () => _select(preview),
+                        child: AnimatedSwitcher(
+                          duration: motion.fast,
+                          child: _DetailPanel(
+                            key: ValueKey(preview?.id),
+                            model: preview,
+                            onSelect: preview == null
+                                ? null
+                                : () => _select(preview),
+                          ),
                         ),
                       ),
                     ],
@@ -601,6 +627,7 @@ class _SelectedBar extends StatelessWidget {
 
 class _ModelCollection extends StatelessWidget {
   const _ModelCollection({
+    super.key,
     required this.models,
     required this.view,
     required this.favorites,
@@ -1006,7 +1033,7 @@ class _VendorAvatar extends StatelessWidget {
 // ── Detail panel ────────────────────────────────────────────────────────────
 
 class _DetailPanel extends StatelessWidget {
-  const _DetailPanel({required this.model, required this.onSelect});
+  const _DetailPanel({super.key, required this.model, required this.onSelect});
 
   final OpenRouterModel? model;
   final VoidCallback? onSelect;
