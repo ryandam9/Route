@@ -112,6 +112,49 @@ class _ConversationListState extends ConsumerState<ConversationList> {
     }
   }
 
+  Widget _tile(Conversation convo, String? currentId) => _ConversationTile(
+        conversation: convo,
+        selected: convo.id == currentId,
+        onTap: () {
+          ref.read(chatProvider.notifier).selectConversation(convo.id);
+          if (widget.inDrawer) Navigator.of(context).pop();
+          widget.onOpenChat?.call();
+        },
+      );
+
+  /// Tiles grouped under a "Pinned" heading and then by recency date.
+  List<Widget> _groupedTiles(List<Conversation> conversations, String? curId) {
+    final pinned = conversations.where((c) => c.pinned).toList();
+    final rest = conversations.where((c) => !c.pinned).toList();
+    final children = <Widget>[];
+    if (pinned.isNotEmpty) {
+      children.add(const _SectionLabel('Pinned'));
+      children.addAll(pinned.map((c) => _tile(c, curId)));
+    }
+    String? lastLabel;
+    for (final c in rest) {
+      final label = _dateGroup(c.updatedAt);
+      if (label != lastLabel) {
+        children.add(_SectionLabel(label));
+        lastLabel = label;
+      }
+      children.add(_tile(c, curId));
+    }
+    return children;
+  }
+
+  static String _dateGroup(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(day).inDays;
+    if (diff <= 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    if (diff < 7) return 'Previous 7 days';
+    if (diff < 30) return 'Previous 30 days';
+    return 'Older';
+  }
+
   @override
   Widget build(BuildContext context) {
     final chat = ref.watch(chatProvider);
@@ -133,6 +176,9 @@ class _ConversationListState extends ConsumerState<ConversationList> {
             ? matches.sublist(0, _recentLimit)
             : matches;
     final hiddenCount = matches.length - conversations.length;
+    // The full Chat history page groups chats by date (and pins) for easier
+    // scanning; the dashboard's short list and search results stay flat.
+    final grouped = !widget.showNavigation && query.isEmpty;
 
     return SafeArea(
       child: Column(
@@ -264,19 +310,11 @@ class _ConversationListState extends ConsumerState<ConversationList> {
                       ),
                     ),
                   )
+                else if (grouped)
+                  ..._groupedTiles(conversations, chat.current?.id)
                 else ...[
                   for (final convo in conversations)
-                    _ConversationTile(
-                      conversation: convo,
-                      selected: convo.id == chat.current?.id,
-                      onTap: () {
-                        ref
-                            .read(chatProvider.notifier)
-                            .selectConversation(convo.id);
-                        if (widget.inDrawer) Navigator.of(context).pop();
-                        widget.onOpenChat?.call();
-                      },
-                    ),
+                    _tile(convo, chat.current?.id),
                   if (hiddenCount > 0)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),

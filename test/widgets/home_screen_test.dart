@@ -100,10 +100,11 @@ void main() {
     expect(find.byType(ListTile), findsNWidgets(5));
     expect(find.textContaining('View all'), findsOneWidget);
 
-    // Opening the full history (Chat history page) lists all 7.
+    // Opening the full history (Chat history page) lists all 7, grouped by date.
     await tester.tap(find.text('Chat history'));
     await tester.pumpAndSettle();
     expect(find.byType(ListTile), findsNWidgets(7));
+    expect(find.text('TODAY'), findsOneWidget);
   });
 
   testWidgets('Chat history opens the two-pane chat workspace', (tester) async {

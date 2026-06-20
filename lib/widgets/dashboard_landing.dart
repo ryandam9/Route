@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/chat_provider.dart';
 import '../providers/settings_provider.dart';
 import '../screens/settings_screen.dart';
 import 'ui_kit.dart';
 
-/// The Wombat welcome dashboard: avatar, summary cards and a getting-started
+/// The Wombat welcome dashboard: avatar, title and a getting-started
 /// checklist. Shown as the desktop home centre pane and as the empty state of
 /// a chat with no messages.
 class DashboardLanding extends ConsumerWidget {
@@ -19,7 +18,6 @@ class DashboardLanding extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final chat = ref.watch(chatProvider);
     final hasKey = ref.watch(settingsProvider.select((s) => s.hasApiKey));
 
     return Center(
@@ -49,38 +47,13 @@ class DashboardLanding extends ConsumerWidget {
                     ?.copyWith(color: theme.colorScheme.outline),
               ),
               const SizedBox(height: 24),
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _DashCard(
-                        icon: Icons.chat_bubble_outline,
-                        label: 'Conversations',
-                        value: '${chat.conversations.length}',
-                        subtitle: 'Total chats',
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _DashCard(
-                        icon: Icons.bolt,
-                        label: 'API key',
-                        value: hasKey ? 'Set' : 'Missing',
-                        subtitle: 'OpenRouter',
-                        onTap: () => _openSettings(context),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
               SectionPanel(
                 title: 'Getting started',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _StartStep(
+                      step: 1,
                       icon: Icons.key_outlined,
                       title: hasKey ? 'API key configured' : 'Add your API key',
                       description: hasKey
@@ -91,6 +64,7 @@ class DashboardLanding extends ConsumerWidget {
                     ),
                     const Divider(height: 20),
                     const _StartStep(
+                      step: 2,
                       icon: Icons.grid_view_outlined,
                       title: 'Pick a model in the header',
                       description:
@@ -98,6 +72,7 @@ class DashboardLanding extends ConsumerWidget {
                     ),
                     const Divider(height: 20),
                     const _StartStep(
+                      step: 3,
                       icon: Icons.send_outlined,
                       title: 'Type a message to begin',
                       description: 'Ask anything. Wombat is ready to help!',
@@ -113,81 +88,11 @@ class DashboardLanding extends ConsumerWidget {
   }
 }
 
-/// A dashboard summary card: a leading icon disc, a label, a large value and a
-/// subtitle. Tappable cards (e.g. API key) show a trailing chevron.
-class _DashCard extends StatelessWidget {
-  const _DashCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.subtitle,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final String subtitle;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _IconDisc(icon: icon),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label.toUpperCase(),
-                      style: theme.textTheme.labelSmall
-                          ?.copyWith(color: theme.colorScheme.outline),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.outline),
-                    ),
-                  ],
-                ),
-              ),
-              if (onTap != null)
-                Icon(Icons.chevron_right, color: theme.colorScheme.outline),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A getting-started step: icon disc, title + description, and a trailing
-/// chevron (or a green check when [done]).
+/// A getting-started step: a numbered disc, the step icon, title + description,
+/// and a trailing green check when [done] (or a chevron only when actionable).
 class _StartStep extends StatelessWidget {
   const _StartStep({
+    required this.step,
     required this.icon,
     required this.title,
     required this.description,
@@ -195,6 +100,7 @@ class _StartStep extends StatelessWidget {
     this.onTap,
   });
 
+  final int step;
   final IconData icon;
   final String title;
   final String description;
@@ -209,6 +115,8 @@ class _StartStep extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
+          _StepNumber(step),
+          const SizedBox(width: 12),
           _IconDisc(icon: icon),
           const SizedBox(width: 14),
           Expanded(
@@ -226,11 +134,38 @@ class _StartStep extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          // Green tick once complete; a chevron only when the step is tappable.
           if (done)
-            Icon(Icons.check_circle, color: theme.colorScheme.primary)
-          else
+            const Icon(Icons.check_circle, color: Color(0xFF4CAF50))
+          else if (onTap != null)
             Icon(Icons.chevron_right, color: theme.colorScheme.outline),
         ],
+      ),
+    );
+  }
+}
+
+/// A small circular step-number badge.
+class _StepNumber extends StatelessWidget {
+  const _StepNumber(this.step);
+
+  final int step;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 24,
+      height: 24,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Text(
+        '$step',
+        style: theme.textTheme.labelMedium
+            ?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }
