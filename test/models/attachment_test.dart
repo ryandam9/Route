@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/attachment.dart';
+import 'package:wombat/models/attachment.dart';
 
 void main() {
   group('MessageAttachment', () {

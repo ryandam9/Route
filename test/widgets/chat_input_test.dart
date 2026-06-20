@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/attachment.dart';
-import 'package:route/models/chat_message.dart';
-import 'package:route/models/usage.dart';
-import 'package:route/providers/chat_provider.dart';
-import 'package:route/widgets/chat_input.dart';
+import 'package:wombat/models/attachment.dart';
+import 'package:wombat/models/chat_message.dart';
+import 'package:wombat/models/usage.dart';
+import 'package:wombat/providers/chat_provider.dart';
+import 'package:wombat/widgets/chat_input.dart';
 
 import '../helpers/fakes.dart';
 

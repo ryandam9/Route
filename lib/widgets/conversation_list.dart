@@ -33,7 +33,7 @@ class ConversationList extends ConsumerWidget {
               children: [
                 Icon(Icons.alt_route, color: theme.colorScheme.primary),
                 const SizedBox(width: 10),
-                Text('Route', style: theme.textTheme.titleLarge),
+                Text('Wombat', style: theme.textTheme.titleLarge),
                 const SizedBox(width: 8),
                 if (chat.conversations.isNotEmpty)
                   StatusChip(

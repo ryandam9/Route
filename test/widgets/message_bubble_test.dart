@@ -3,11 +3,11 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/attachment.dart';
-import 'package:route/models/chat_message.dart';
-import 'package:route/providers/settings_provider.dart';
-import 'package:route/theme/app_theme.dart';
-import 'package:route/widgets/message_bubble.dart';
+import 'package:wombat/models/attachment.dart';
+import 'package:wombat/models/chat_message.dart';
+import 'package:wombat/providers/settings_provider.dart';
+import 'package:wombat/theme/app_theme.dart';
+import 'package:wombat/widgets/message_bubble.dart';
 
 import '../helpers/fakes.dart';
 

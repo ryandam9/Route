@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/providers/chat_provider.dart';
-import 'package:route/screens/home_screen.dart';
-import 'package:route/theme/app_theme.dart';
+import 'package:wombat/providers/chat_provider.dart';
+import 'package:wombat/screens/home_screen.dart';
+import 'package:wombat/theme/app_theme.dart';
 
 import '../helpers/fakes.dart';
 

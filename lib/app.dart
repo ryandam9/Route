@@ -6,8 +6,8 @@ import 'providers/settings_provider.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
 
-class RouteApp extends ConsumerWidget {
-  const RouteApp({super.key});
+class WombatApp extends ConsumerWidget {
+  const WombatApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -16,7 +16,7 @@ class RouteApp extends ConsumerWidget {
         ref.watch(settingsProvider.select((s) => s.headingFont));
     final seed = ref.watch(settingsProvider.select((s) => s.seedColor));
     return MaterialApp(
-      title: 'Route',
+      title: 'Wombat',
       debugShowCheckedModeBanner: false,
       theme: _withHeadingFont(AppTheme.lightFor(seed), headingFont),
       darkTheme: _withHeadingFont(AppTheme.darkFor(seed), headingFont),

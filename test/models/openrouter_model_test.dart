@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/openrouter_model.dart';
+import 'package:wombat/models/openrouter_model.dart';
 
 void main() {
   group('OpenRouterModel', () {

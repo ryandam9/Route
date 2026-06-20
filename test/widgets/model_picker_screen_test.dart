@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/openrouter_model.dart';
-import 'package:route/providers/settings_provider.dart';
-import 'package:route/screens/model_picker_screen.dart';
+import 'package:wombat/models/openrouter_model.dart';
+import 'package:wombat/providers/settings_provider.dart';
+import 'package:wombat/screens/model_picker_screen.dart';
 
 import '../helpers/fakes.dart';
 

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/openrouter_model.dart';
-import 'package:route/models/usage.dart';
-import 'package:route/providers/usage_provider.dart';
-import 'package:route/screens/compare_screen.dart';
-import 'package:route/widgets/message_bubble.dart';
+import 'package:wombat/models/openrouter_model.dart';
+import 'package:wombat/models/usage.dart';
+import 'package:wombat/providers/usage_provider.dart';
+import 'package:wombat/screens/compare_screen.dart';
+import 'package:wombat/widgets/message_bubble.dart';
 
 import '../helpers/fakes.dart';
 

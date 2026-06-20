@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/services/download_service.dart';
+import 'package:wombat/services/download_service.dart';
 
 void main() {
   group('DownloadService.extensionForMime', () {
