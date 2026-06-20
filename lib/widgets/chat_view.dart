@@ -285,7 +285,16 @@ class _EmptyState extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.alt_route, size: 56, color: theme.colorScheme.primary),
+              ClipOval(
+                child: Image.asset(
+                  'assets/icon/app_icon.png',
+                  width: 64,
+                  height: 64,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(Icons.pets,
+                      size: 56, color: theme.colorScheme.primary),
+                ),
+              ),
               const SizedBox(height: 16),
               Text('Wombat', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 4),
