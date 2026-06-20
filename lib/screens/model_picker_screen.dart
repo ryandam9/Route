@@ -665,13 +665,26 @@ class _ModelCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Up to two lines so longer model names stay readable; the full
+              // id is available on hover.
+              Tooltip(
+                message: model.id,
+                child: Text(
+                  model.name,
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 2),
               Row(
                 children: [
                   Flexible(
                     child: Text(
-                      model.name,
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      model.id,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: scheme.outline),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -681,13 +694,6 @@ class _ModelCard extends StatelessWidget {
                     StatusChip('Free', color: scheme.tertiary),
                   ],
                 ],
-              ),
-              Text(
-                model.id,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: scheme.outline),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
