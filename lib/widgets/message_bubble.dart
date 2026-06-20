@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -192,7 +192,7 @@ class MessageBubble extends ConsumerWidget {
       child: MarkdownBody(
         data: data,
         selectable: false,
-        sizedImageBuilder: _markdownImage,
+        imageBuilder: _markdownImage,
         styleSheet: base.copyWith(
         p: base.p?.copyWith(color: scheme.onSurface),
         code: base.code?.copyWith(
@@ -222,8 +222,7 @@ class MessageBubble extends ConsumerWidget {
 
   /// Renders Markdown image links inline, supporting `data:` URIs (base64),
   /// `http(s)` URLs, and inline SVG data URIs.
-  Widget _markdownImage(MarkdownImageConfig config) {
-    final uri = config.uri;
+  Widget _markdownImage(Uri uri, String? title, String? alt) {
     Widget broken() => const _BrokenImage();
     const maxW = BoxConstraints(maxWidth: 320);
     if (uri.scheme == 'data') {
