@@ -112,35 +112,11 @@ class _Header extends ConsumerWidget {
               onPressed: () =>
                   ref.read(chatProvider.notifier).newConversation(),
             ),
-            // On phones, fold the secondary actions into an overflow menu so the
-            // header never overcrowds; show them inline on wide layouts.
-            if (showMenuButton)
-              const _OverflowMenu()
-            else ...[
-              const _UsageButton(),
-              IconButton(
-                icon: const Icon(Icons.help_outline),
-                tooltip: 'Help & Troubleshoot',
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const HelpScreen()),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.bug_report_outlined),
-                tooltip: 'Debug sessions',
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const DebugScreen()),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.settings_outlined),
-                tooltip: 'Settings',
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                      builder: (_) => const SettingsScreen()),
-                ),
-              ),
-            ],
+            // Secondary actions (Usage, Debug, Settings, …) live in the sidebar
+            // navigation rail on wide layouts. Show them in a header overflow
+            // menu only when the sidebar isn't available: on phones (drawer) or
+            // when the wide sidebar is collapsed.
+            if (showMenuButton || onExpandSidebar != null) const _OverflowMenu(),
           ],
         ),
       ),
@@ -216,33 +192,6 @@ class _OverflowMenu extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Header action that opens the usage screen, showing the running session
-/// cost once any requests have been made.
-class _UsageButton extends ConsumerWidget {
-  const _UsageButton();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final usage = ref.watch(usageProvider);
-    void open() => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const UsageScreen()),
-        );
-
-    if (usage.isEmpty) {
-      return IconButton(
-        icon: const Icon(Icons.insights_outlined),
-        tooltip: 'Usage',
-        onPressed: open,
-      );
-    }
-    return TextButton.icon(
-      onPressed: open,
-      icon: const Icon(Icons.insights_outlined, size: 18),
-      label: Text('\$${usage.cost.toStringAsFixed(4)}'),
     );
   }
 }
