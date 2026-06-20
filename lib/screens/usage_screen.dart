@@ -35,18 +35,22 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
   Widget build(BuildContext context) {
     final usage = ref.watch(usageProvider);
     final hasModels = usage.byModel.isNotEmpty;
+    final error = Theme.of(context).colorScheme.error;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Session usage'),
         actions: [
-          IconButton(
-            tooltip: 'Reset session',
-            icon: const Icon(Icons.restart_alt),
+          // Red to flag that this clears the session totals (destructive).
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: error),
+            icon: const Icon(Icons.restart_alt, size: 18),
+            label: const Text('Reset session'),
             onPressed: usage.isEmpty
                 ? null
                 : () => ref.read(usageProvider.notifier).reset(),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: ListView(
