@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wombat/models/chat_message.dart';
+import 'package:wombat/models/conversation.dart';
 import 'package:wombat/providers/chat_provider.dart';
 import 'package:wombat/widgets/chat_input.dart';
 import 'package:wombat/widgets/chat_view.dart';
@@ -65,5 +67,39 @@ void main() {
     expect(find.byType(ModelSelector), findsOneWidget);
     expect(find.byType(ChatInput), findsOneWidget);
     expect(find.byTooltip('New chat'), findsOneWidget);
+  });
+
+  testWidgets('deleting the active chat does not crash the message list',
+      (tester) async {
+    final convo = Conversation(
+      id: 'c1',
+      title: 'Chat',
+      modelId: 'test/model',
+      messages: [
+        ChatMessage(id: 'm1', role: MessageRole.user, content: 'hi'),
+      ],
+    );
+    late ProviderContainer container;
+    await tester.runAsync(() async {
+      container = await createContainer(
+        service: FakeOpenRouterService(),
+        store: FakeConversationStore(initial: [convo]),
+      );
+      await waitUntil(() => !container.read(chatProvider.notifier).loading);
+    });
+    addTearDown(container.dispose);
+
+    await pump(tester, container);
+    await tester.pumpAndSettle();
+    // A conversation with messages is active, so the composer is shown.
+    expect(find.byType(ChatInput), findsOneWidget);
+
+    // Deleting the active chat sets `current` to null while the message list
+    // is still fading out — this used to throw a null-check error.
+    container.read(chatProvider.notifier).deleteAllConversations();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(ChatInput), findsNothing);
   });
 }
