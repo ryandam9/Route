@@ -18,7 +18,7 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
   static const double _minSidebarWidth = 220;
   static const double _maxSidebarWidth = 520;
 
-  double _sidebarWidth = 300;
+  double _sidebarWidth = 340;
   bool _collapsed = false;
 
   void _resize(double dx) {

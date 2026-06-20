@@ -31,7 +31,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   static const double _minSidebarWidth = 220;
   static const double _maxSidebarWidth = 520;
 
-  double _sidebarWidth = 300;
+  double _sidebarWidth = 340;
   bool _collapsed = false;
   DashboardSection _section = DashboardSection.chat;
 
