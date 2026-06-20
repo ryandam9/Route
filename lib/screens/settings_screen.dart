@@ -1,3 +1,4 @@
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -708,12 +709,24 @@ class _CustomColorDot extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return InkResponse(
       onTap: () async {
-        final picked = await showDialog<Color>(
-          context: context,
-          builder: (_) =>
-              _CustomColorDialog(initial: selected ? current : scheme.primary),
+        final start = selected ? current : scheme.primary;
+        final picked = await showColorPickerDialog(
+          context,
+          start,
+          title: Text('Accent colour',
+              style: Theme.of(context).textTheme.titleMedium),
+          pickersEnabled: const {
+            ColorPickerType.primary: true,
+            ColorPickerType.accent: true,
+            ColorPickerType.wheel: true,
+          },
+          enableShadesSelection: true,
+          showColorCode: true,
+          colorCodeHasColor: true,
+          constraints: const BoxConstraints(
+              minHeight: 480, minWidth: 320, maxWidth: 360),
         );
-        if (picked != null) onPicked(picked);
+        onPicked(picked);
       },
       radius: 26,
       child: Container(
@@ -738,101 +751,6 @@ class _CustomColorDot extends StatelessWidget {
         child: Icon(selected ? Icons.check : Icons.tune,
             color: Colors.white, size: 20),
       ),
-    );
-  }
-}
-
-/// Simple dependency-free RGB colour picker (sliders + live preview).
-class _CustomColorDialog extends StatefulWidget {
-  const _CustomColorDialog({required this.initial});
-
-  final Color initial;
-
-  @override
-  State<_CustomColorDialog> createState() => _CustomColorDialogState();
-}
-
-class _CustomColorDialogState extends State<_CustomColorDialog> {
-  late int _r;
-  late int _g;
-  late int _b;
-
-  @override
-  void initState() {
-    super.initState();
-    _r = (widget.initial.r * 255).round();
-    _g = (widget.initial.g * 255).round();
-    _b = (widget.initial.b * 255).round();
-  }
-
-  Color get _color => Color.fromARGB(255, _r, _g, _b);
-
-  String get _hex => _color
-      .toARGB32()
-      .toRadixString(16)
-      .padLeft(8, '0')
-      .substring(2)
-      .toUpperCase();
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Custom accent colour'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 56,
-            decoration: BoxDecoration(
-              color: _color,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant),
-            ),
-            alignment: Alignment.center,
-            child: Text('#$_hex',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    shadows: [Shadow(blurRadius: 2)])),
-          ),
-          const SizedBox(height: 12),
-          _channel('R', _r, Colors.red, (v) => setState(() => _r = v)),
-          _channel('G', _g, Colors.green, (v) => setState(() => _g = v)),
-          _channel('B', _b, Colors.blue, (v) => setState(() => _b = v)),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_color),
-          child: const Text('Use colour'),
-        ),
-      ],
-    );
-  }
-
-  Widget _channel(
-      String label, int value, Color tint, ValueChanged<int> onChanged) {
-    return Row(
-      children: [
-        SizedBox(width: 18, child: Text(label)),
-        Expanded(
-          child: Slider(
-            value: value.toDouble(),
-            max: 255,
-            divisions: 255,
-            activeColor: tint,
-            label: '$value',
-            onChanged: (v) => onChanged(v.round()),
-          ),
-        ),
-        SizedBox(width: 34, child: Text('$value', textAlign: TextAlign.end)),
-      ],
     );
   }
 }
