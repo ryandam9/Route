@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/usage.dart';
-import 'package:route/screens/debug_screen.dart';
-import 'package:route/services/debug_log.dart';
-import 'package:route/theme/app_theme.dart';
+import 'package:wombat/models/usage.dart';
+import 'package:wombat/screens/debug_screen.dart';
+import 'package:wombat/services/debug_log.dart';
+import 'package:wombat/theme/app_theme.dart';
 
 import '../helpers/fakes.dart';
 

@@ -36,7 +36,7 @@ class OpenRouterService {
         if (json) 'Content-Type': 'application/json',
         // Optional attribution headers recommended by OpenRouter.
         'HTTP-Referer': 'https://github.com/ryandam9/route',
-        'X-Title': 'Route',
+        'X-Title': 'Wombat',
       };
 
   /// Fetches the catalogue of available models, sorted by display name.

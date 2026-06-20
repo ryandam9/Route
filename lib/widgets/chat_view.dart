@@ -287,7 +287,7 @@ class _EmptyState extends ConsumerWidget {
             children: [
               Icon(Icons.alt_route, size: 56, color: theme.colorScheme.primary),
               const SizedBox(height: 16),
-              Text('Route', style: theme.textTheme.headlineSmall),
+              Text('Wombat', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 4),
               Text(
                 'Chat with LLMs via OpenRouter',

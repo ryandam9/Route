@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/usage.dart';
-import 'package:route/providers/usage_provider.dart';
+import 'package:wombat/models/usage.dart';
+import 'package:wombat/providers/usage_provider.dart';
 
 import '../helpers/fakes.dart';
 

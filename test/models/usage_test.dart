@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/usage.dart';
+import 'package:wombat/models/usage.dart';
 
 void main() {
   group('TokenUsage', () {

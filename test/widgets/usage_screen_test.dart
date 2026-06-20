@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/usage.dart';
-import 'package:route/providers/usage_provider.dart';
-import 'package:route/screens/usage_screen.dart';
-import 'package:route/theme/app_theme.dart';
-import 'package:route/widgets/ui_kit.dart';
+import 'package:wombat/models/usage.dart';
+import 'package:wombat/providers/usage_provider.dart';
+import 'package:wombat/screens/usage_screen.dart';
+import 'package:wombat/theme/app_theme.dart';
+import 'package:wombat/widgets/ui_kit.dart';
 
 import '../helpers/fakes.dart';
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/app_font.dart';
-import 'package:route/providers/app_providers.dart';
-import 'package:route/providers/settings_provider.dart';
-import 'package:route/theme/app_theme.dart';
+import 'package:wombat/models/app_font.dart';
+import 'package:wombat/providers/app_providers.dart';
+import 'package:wombat/providers/settings_provider.dart';
+import 'package:wombat/theme/app_theme.dart';
 
 import '../helpers/fakes.dart';
 

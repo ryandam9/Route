@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:route/models/attachment.dart';
-import 'package:route/models/chat_message.dart';
-import 'package:route/models/conversation.dart';
-import 'package:route/models/openrouter_model.dart';
-import 'package:route/models/usage.dart';
-import 'package:route/providers/app_providers.dart';
-import 'package:route/providers/settings_provider.dart';
-import 'package:route/services/conversation_store.dart';
-import 'package:route/services/openrouter_service.dart';
-import 'package:route/services/secure_storage_service.dart';
+import 'package:wombat/models/attachment.dart';
+import 'package:wombat/models/chat_message.dart';
+import 'package:wombat/models/conversation.dart';
+import 'package:wombat/models/openrouter_model.dart';
+import 'package:wombat/models/usage.dart';
+import 'package:wombat/providers/app_providers.dart';
+import 'package:wombat/providers/settings_provider.dart';
+import 'package:wombat/services/conversation_store.dart';
+import 'package:wombat/services/openrouter_service.dart';
+import 'package:wombat/services/secure_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// In-memory [SecureStorageService] for tests; never touches a platform store.

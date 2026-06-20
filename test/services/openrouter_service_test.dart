@@ -4,11 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:route/models/attachment.dart';
-import 'package:route/models/chat_message.dart';
-import 'package:route/models/usage.dart';
-import 'package:route/services/debug_log.dart';
-import 'package:route/services/openrouter_service.dart';
+import 'package:wombat/models/attachment.dart';
+import 'package:wombat/models/chat_message.dart';
+import 'package:wombat/models/usage.dart';
+import 'package:wombat/services/debug_log.dart';
+import 'package:wombat/services/openrouter_service.dart';
 
 /// Returns a [DebugLog] notifier mounted in a disposable container.
 DebugLog makeLog() {

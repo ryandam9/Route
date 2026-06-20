@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/usage.dart';
-import 'package:route/services/debug_log.dart';
+import 'package:wombat/models/usage.dart';
+import 'package:wombat/services/debug_log.dart';
 
 /// Returns a [DebugLog] notifier mounted in a disposable container.
 DebugLog makeLog({int capacity = 50}) {

@@ -1,4 +1,4 @@
-name: route
+name: wombat
 description: A Flutter app to chat with LLMs offered by OpenRouter.
 publish_to: "none"
 version: 1.0.0+1

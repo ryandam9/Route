@@ -1,6 +1,6 @@
-# Route
+# Wombat
 
-**Route** is a cross-platform Flutter app for chatting with large language
+**Wombat** is a cross-platform Flutter app for chatting with large language
 models through [OpenRouter](https://openrouter.ai). With a single OpenRouter API
 key you get one chat interface over hundreds of models from OpenAI, Anthropic,
 Google, Meta, Mistral, and more — with streaming replies, saved conversations,
@@ -74,7 +74,7 @@ A **Setup** strip at the top tracks your progress: API key → model → chat.
 ## Usage & cost tracking
 
 OpenRouter returns exact token counts and the **USD cost** of each request in
-the final stream chunk. Route accumulates these for the current session.
+the final stream chunk. Wombat accumulates these for the current session.
 
 - Open the panel from the **⌁ usage button** in the chat header. Once you've
   made a request, that button also shows the **running session cost**.

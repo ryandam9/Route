@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/openrouter_model.dart';
-import 'package:route/models/usage.dart';
-import 'package:route/providers/chat_provider.dart';
-import 'package:route/providers/settings_provider.dart';
-import 'package:route/providers/usage_provider.dart';
-import 'package:route/screens/debug_screen.dart';
-import 'package:route/screens/home_screen.dart';
-import 'package:route/screens/model_picker_screen.dart';
-import 'package:route/screens/settings_screen.dart';
-import 'package:route/screens/usage_screen.dart';
-import 'package:route/services/debug_log.dart';
-import 'package:route/theme/app_theme.dart';
+import 'package:wombat/models/openrouter_model.dart';
+import 'package:wombat/models/usage.dart';
+import 'package:wombat/providers/chat_provider.dart';
+import 'package:wombat/providers/settings_provider.dart';
+import 'package:wombat/providers/usage_provider.dart';
+import 'package:wombat/screens/debug_screen.dart';
+import 'package:wombat/screens/home_screen.dart';
+import 'package:wombat/screens/model_picker_screen.dart';
+import 'package:wombat/screens/settings_screen.dart';
+import 'package:wombat/screens/usage_screen.dart';
+import 'package:wombat/services/debug_log.dart';
+import 'package:wombat/theme/app_theme.dart';
 
 import '../helpers/fakes.dart';
 

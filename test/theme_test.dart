@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/theme/app_theme.dart';
+import 'package:wombat/theme/app_theme.dart';
 
 void main() {
   test('AppTheme provides light and dark Material 3 themes', () {
@@ -17,10 +17,10 @@ void main() {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: ThemeMode.dark,
-        home: const Scaffold(body: Center(child: Text('Route'))),
+        home: const Scaffold(body: Center(child: Text('Wombat'))),
       ),
     );
-    expect(find.text('Route'), findsOneWidget);
+    expect(find.text('Wombat'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

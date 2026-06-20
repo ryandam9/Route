@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/chat_message.dart';
-import 'package:route/models/conversation.dart';
-import 'package:route/services/conversation_store.dart';
+import 'package:wombat/models/chat_message.dart';
+import 'package:wombat/models/conversation.dart';
+import 'package:wombat/services/conversation_store.dart';
 
 void main() {
   late Directory tempDir;

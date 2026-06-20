@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/models/attachment.dart';
-import 'package:route/models/chat_message.dart';
+import 'package:wombat/models/attachment.dart';
+import 'package:wombat/models/chat_message.dart';
 
 void main() {
   group('MessageRole wire mapping', () {

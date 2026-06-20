@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:route/screens/settings_screen.dart';
-import 'package:route/theme/app_theme.dart';
+import 'package:wombat/screens/settings_screen.dart';
+import 'package:wombat/theme/app_theme.dart';
 
 import '../helpers/fakes.dart';
 
