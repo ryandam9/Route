@@ -35,7 +35,7 @@ class OpenRouterService {
         'Authorization': 'Bearer $apiKey',
         if (json) 'Content-Type': 'application/json',
         // Optional attribution headers recommended by OpenRouter.
-        'HTTP-Referer': 'https://github.com/ryandam9/route',
+        'HTTP-Referer': 'https://github.com/ryandam9/Wombat',
         'X-Title': 'Wombat',
       };
 
