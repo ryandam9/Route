@@ -31,7 +31,16 @@ class ConversationList extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
             child: Row(
               children: [
-                Icon(Icons.alt_route, color: theme.colorScheme.primary),
+                ClipOval(
+                  child: Image.asset(
+                    'assets/icon/app_icon.png',
+                    width: 28,
+                    height: 28,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        Icon(Icons.pets, color: theme.colorScheme.primary),
+                  ),
+                ),
                 const SizedBox(width: 10),
                 Text('Wombat', style: theme.textTheme.titleLarge),
                 const SizedBox(width: 8),
