@@ -14,7 +14,9 @@ import 'package:wombat/services/openrouter_service.dart';
 DebugLog makeLog() {
   final container = ProviderContainer();
   addTearDown(container.dispose);
-  return container.read(debugLogProvider.notifier);
+  // Capture is opt-in (off by default); enable it for the service tests that
+  // assert on captured sessions.
+  return container.read(debugLogProvider.notifier)..enabled = true;
 }
 
 void main() {
@@ -352,6 +354,14 @@ void main() {
       );
     });
   });
+
+  group('OpenRouterService.dispose', () {
+    test('closes the underlying HTTP client', () {
+      final client = _RecordingClient();
+      OpenRouterService(client: client).dispose();
+      expect(client.closed, isTrue);
+    });
+  });
 }
 
 /// A lightweight stand-in to simulate a transport-level failure.
@@ -359,4 +369,17 @@ class SocketExceptionLike implements Exception {
   const SocketExceptionLike();
   @override
   String toString() => 'Connection refused';
+}
+
+/// An [http.Client] that records whether [close] was called, for the dispose
+/// test.
+class _RecordingClient extends http.BaseClient {
+  bool closed = false;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async =>
+      http.StreamedResponse(const Stream.empty(), 200);
+
+  @override
+  void close() => closed = true;
 }

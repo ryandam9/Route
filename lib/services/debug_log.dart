@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/usage.dart';
+import 'debug_redaction.dart';
 
 /// Lifecycle state of a debug session.
 enum SessionStatus { pending, streaming, done, error }
@@ -90,6 +91,15 @@ class DebugSession {
   bool get hasReasoning => _reasoning.isNotEmpty;
   List<String> get rawFrames => List.unmodifiable(_rawFrames);
 
+  /// Records a raw SSE frame, capped in count and redacted/truncated when large
+  /// (e.g. frames carrying base64 generated images) to keep the log light.
+  void _addRawFrame(String frame) {
+    if (_rawFrames.length >= _maxRawFrames) return;
+    _rawFrames.add(
+      frame.length > kDebugMaxStringLength ? redactBodyForDebug(frame)! : frame,
+    );
+  }
+
   bool get isLive =>
       status == SessionStatus.pending || status == SessionStatus.streaming;
 
@@ -135,7 +145,10 @@ class DebugLog extends Notifier<DebugState> {
 
   final int capacity;
   final List<DebugSession> _sessions = [];
-  bool _enabled = true;
+  // Capture is OFF by default: API request bodies can include prompts,
+  // conversation history and (base64) attachments, so the user opts in from the
+  // debug panel. Sessions live only in memory and are cleared on restart.
+  bool _enabled = false;
   int _counter = 0;
 
   Timer? _throttle;
@@ -172,11 +185,15 @@ class DebugLog extends Notifier<DebugState> {
     if (!_enabled) return null;
     final id = 'sess_${(_counter++).toRadixString(36).padLeft(4, '0')}'
         '${DateTime.now().millisecondsSinceEpoch.toRadixString(36).substring(5)}';
+    // Redact base64 attachments (images/audio/PDFs) and truncate long strings
+    // before retaining the request body, so the in-memory log stays light and
+    // free of large/sensitive payloads.
+    final safeBody = redactBodyForDebug(requestBody);
     final s = DebugSession(
       id: id,
       title: title,
       model: model,
-      requestBody: requestBody,
+      requestBody: safeBody,
     );
     s.events.add(DebugEvent(
       time: s.startedAt,
@@ -184,12 +201,12 @@ class DebugLog extends Notifier<DebugState> {
       title: 'Session started',
       subtitle: model != null ? 'Model: $model' : null,
     ));
-    if (requestBody != null) {
+    if (safeBody != null) {
       s.events.add(DebugEvent(
         time: DateTime.now(),
         category: DebugCategory.request,
         title: 'Request sent',
-        detail: requestBody,
+        detail: safeBody,
       ));
     }
     _sessions.add(s);
@@ -224,9 +241,7 @@ class DebugLog extends Notifier<DebugState> {
   }) {
     if (s == null) return;
     s.chunkCount++;
-    if (s._rawFrames.length < DebugSession._maxRawFrames) {
-      s._rawFrames.add(rawFrame);
-    }
+    s._addRawFrame(rawFrame);
     final now = DateTime.now();
     if (content != null && content.isNotEmpty) {
       s._content.write(content);
@@ -258,9 +273,7 @@ class DebugLog extends Notifier<DebugState> {
   /// Records a non-data SSE line (e.g. the `OPENROUTER PROCESSING` keep-alive).
   void note(DebugSession? s, String rawLine) {
     if (s == null) return;
-    if (s._rawFrames.length < DebugSession._maxRawFrames) {
-      s._rawFrames.add(rawLine);
-    }
+    s._addRawFrame(rawLine);
     _notifyThrottled();
   }
 
@@ -282,7 +295,7 @@ class DebugLog extends Notifier<DebugState> {
       ..status = SessionStatus.done
       ..completedAt = DateTime.now()
       ..httpStatus = httpStatus ?? s.httpStatus
-      ..responseBody = responseBody ?? s.responseBody
+      ..responseBody = redactBodyForDebug(responseBody) ?? s.responseBody
       ..summary = summary ?? s.summary;
     final tokens = s.usage?.totalTokens;
     s.events.add(DebugEvent(

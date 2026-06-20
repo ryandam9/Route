@@ -126,7 +126,7 @@ void main() {
 
   testWidgets('debug session detail lays out at phone widths', (tester) async {
     await setup(tester);
-    final log = container.read(debugLogProvider.notifier);
+    final log = container.read(debugLogProvider.notifier)..enabled = true;
     final s = log.begin(
       title: 'A fairly long debug session title that might wrap on phones',
       model: 'some-vendor/really-long-model-name-4.5-instruct-preview',

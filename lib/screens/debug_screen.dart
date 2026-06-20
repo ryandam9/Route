@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../models/app_font.dart';
 import '../providers/settings_provider.dart';
 import '../services/debug_log.dart';
+import '../widgets/ui_kit.dart';
 
 /// Debug panel. Lists API exchanges as sessions (one per prompt → response);
 /// tapping one opens a detailed view tying the model, prompt, timing, token
@@ -43,14 +44,32 @@ class DebugScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: sessions.isEmpty
-          ? const _EmptyDebug()
-          : ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: sessions.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (_, i) => _SessionCard(session: sessions[i]),
+      body: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(12, 12, 12, 0),
+            child: InfoBanner(
+              title: 'Capture is local and opt-in',
+              message: 'When enabled, captured sessions include request and '
+                  'response data — your prompts, conversation history and any '
+                  'attachments (with large base64 payloads redacted). They are '
+                  'kept only in memory, never sent anywhere, and cleared when '
+                  'the app restarts or you tap Clear.',
+              kind: BannerKind.warning,
             ),
+          ),
+          Expanded(
+            child: sessions.isEmpty
+                ? const _EmptyDebug()
+                : ListView.separated(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: sessions.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) => _SessionCard(session: sessions[i]),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

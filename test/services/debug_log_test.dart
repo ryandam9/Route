@@ -1,15 +1,20 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wombat/models/usage.dart';
 import 'package:wombat/services/debug_log.dart';
 
 /// Returns a [DebugLog] notifier mounted in a disposable container.
-DebugLog makeLog({int capacity = 50}) {
+///
+/// Capture is off by default (see [DebugLog]); these tests opt in unless they
+/// are specifically exercising the disabled path.
+DebugLog makeLog({int capacity = 50, bool enabled = true}) {
   final container = ProviderContainer(overrides: [
     debugLogProvider.overrideWith(() => DebugLog(capacity: capacity)),
   ]);
   addTearDown(container.dispose);
-  return container.read(debugLogProvider.notifier);
+  return container.read(debugLogProvider.notifier)..enabled = enabled;
 }
 
 void main() {
@@ -94,6 +99,13 @@ void main() {
     expect(log.sessions.last.title, 's3');
   });
 
+  test('capture is off by default', () {
+    final log = makeLog(enabled: false);
+    expect(log.enabled, isFalse);
+    expect(log.begin(title: 'x'), isNull);
+    expect(log.isEmpty, isTrue);
+  });
+
   test('does not capture while disabled, and clear empties', () {
     final log = makeLog()..enabled = false;
     expect(log.begin(title: 'x'), isNull);
@@ -104,6 +116,35 @@ void main() {
     expect(log.isEmpty, isFalse);
     log.clear();
     expect(log.isEmpty, isTrue);
+  });
+
+  test('redacts base64 attachments and truncates long strings in the request',
+      () {
+    final log = makeLog();
+    final body = jsonEncode({
+      'model': 'm',
+      'messages': [
+        {
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': 'describe this'},
+            {
+              'type': 'image_url',
+              'image_url': {'url': 'data:image/png;base64,${'A' * 5000}'},
+            },
+          ],
+        },
+      ],
+    });
+    final s = log.begin(title: 't', requestBody: body)!;
+
+    expect(s.requestBody, isNotNull);
+    // The base64 image payload must not be retained verbatim.
+    expect(s.requestBody, isNot(contains('A' * 5000)));
+    expect(s.requestBody, contains('redacted'));
+    // The surrounding (non-sensitive) request shape is preserved.
+    expect(s.requestBody, contains('describe this'));
+    expect(s.requestBody, contains('"model":"m"'));
   });
 
   test('pretty-prints JSON request bodies', () {
