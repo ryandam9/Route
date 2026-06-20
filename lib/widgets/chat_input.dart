@@ -1,14 +1,15 @@
-import 'dart:io';
+import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import '../models/attachment.dart';
 import '../providers/chat_provider.dart';
+import '../services/wav.dart';
 
 /// The message composer: attachment picker, in-app audio recorder, a growing
 /// text field, attachment previews, and a send/stop button.
@@ -22,16 +23,25 @@ class ChatInput extends ConsumerStatefulWidget {
 }
 
 class _ChatInputState extends ConsumerState<ChatInput> {
+  // Capture raw 16-bit PCM and assemble the WAV ourselves. This avoids the
+  // record_linux file-encoder path (parecord -> ffmpeg pipe), which races on
+  // stop ("StreamSink is bound to a stream") and needs ffmpeg installed.
+  static const int _recordSampleRate = 16000;
+  static const int _recordChannels = 1;
+
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final AudioRecorder _recorder = AudioRecorder();
   final List<MessageAttachment> _attachments = [];
+  StreamSubscription<Uint8List>? _audioSub;
+  final BytesBuilder _pcm = BytesBuilder(copy: false);
   bool _recording = false;
 
   @override
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
+    _audioSub?.cancel();
     _recorder.dispose();
     super.dispose();
   }
@@ -97,36 +107,73 @@ class _ChatInputState extends ConsumerState<ChatInput> {
   Future<void> _toggleRecording() async {
     try {
       if (_recording) {
-        final path = await _recorder.stop();
-        setState(() => _recording = false);
-        if (path == null) return;
-        final bytes = await File(path).readAsBytes();
-        setState(() {
-          _attachments.add(MessageAttachment.fromBytes(
-            kind: AttachmentKind.audio,
-            mimeType: 'audio/wav',
-            bytes: bytes,
-            name: 'recording.wav',
-          ));
-        });
+        await _stopRecording();
       } else {
-        if (!await _recorder.hasPermission()) {
-          _toast('Microphone permission denied.');
-          return;
-        }
-        final dir = await getTemporaryDirectory();
-        final path =
-            '${dir.path}/rec_${DateTime.now().millisecondsSinceEpoch}.wav';
-        await _recorder.start(
-          const RecordConfig(encoder: AudioEncoder.wav),
-          path: path,
-        );
-        setState(() => _recording = true);
+        await _startRecording();
       }
     } catch (e) {
-      setState(() => _recording = false);
+      await _cleanupRecording();
       _toast('Recording failed: $e');
     }
+  }
+
+  Future<void> _startRecording() async {
+    if (!await _recorder.hasPermission()) {
+      _toast('Microphone permission denied.');
+      return;
+    }
+    _pcm.clear();
+    final stream = await _recorder.startStream(
+      const RecordConfig(
+        encoder: AudioEncoder.pcm16bits,
+        sampleRate: _recordSampleRate,
+        numChannels: _recordChannels,
+      ),
+    );
+    _audioSub = stream.listen(
+      _pcm.add,
+      onError: (Object e) {
+        _cleanupRecording();
+        _toast('Recording failed: $e');
+      },
+    );
+    setState(() => _recording = true);
+  }
+
+  Future<void> _stopRecording() async {
+    await _audioSub?.cancel();
+    _audioSub = null;
+    await _recorder.stop();
+    setState(() => _recording = false);
+
+    final pcm = _pcm.takeBytes();
+    if (pcm.isEmpty) return;
+    final wav = pcmToWav(
+      pcm,
+      sampleRate: _recordSampleRate,
+      numChannels: _recordChannels,
+    );
+    setState(() {
+      _attachments.add(MessageAttachment.fromBytes(
+        kind: AttachmentKind.audio,
+        mimeType: 'audio/wav',
+        bytes: wav,
+        name: 'recording.wav',
+      ));
+    });
+  }
+
+  /// Tears down an in-progress recording, discarding any captured audio.
+  Future<void> _cleanupRecording() async {
+    await _audioSub?.cancel();
+    _audioSub = null;
+    _pcm.clear();
+    try {
+      await _recorder.stop();
+    } catch (_) {
+      // Already stopped / never started.
+    }
+    if (mounted) setState(() => _recording = false);
   }
 
   String _mimeFor(AttachmentKind kind, String name) {
