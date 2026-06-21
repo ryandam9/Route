@@ -7,14 +7,23 @@ import 'save_button.dart';
 /// Renders a single [MessageAttachment]: an inline image, an audio player, or
 /// a document chip, each with a Save action.
 class AttachmentView extends StatelessWidget {
-  const AttachmentView({super.key, required this.attachment});
+  const AttachmentView({
+    super.key,
+    required this.attachment,
+    this.onImageLoaded,
+  });
 
   final MessageAttachment attachment;
+
+  /// Called once an image attachment has decoded (its on-screen height is then
+  /// known). The message list uses this to re-anchor to the latest reply. #138.
+  final VoidCallback? onImageLoaded;
 
   @override
   Widget build(BuildContext context) {
     final Widget media = switch (attachment.kind) {
-      AttachmentKind.image => _ImageAttachment(attachment: attachment),
+      AttachmentKind.image =>
+        _ImageAttachment(attachment: attachment, onLoaded: onImageLoaded),
       AttachmentKind.audio => AudioPlayerBar(attachment: attachment),
       AttachmentKind.file => _FileAttachment(attachment: attachment),
     };
@@ -42,10 +51,37 @@ class AttachmentView extends StatelessWidget {
       };
 }
 
-class _ImageAttachment extends StatelessWidget {
-  const _ImageAttachment({required this.attachment});
+class _ImageAttachment extends StatefulWidget {
+  const _ImageAttachment({required this.attachment, this.onLoaded});
 
   final MessageAttachment attachment;
+  final VoidCallback? onLoaded;
+
+  @override
+  State<_ImageAttachment> createState() => _ImageAttachmentState();
+}
+
+class _ImageAttachmentState extends State<_ImageAttachment> {
+  late final MemoryImage _image = MemoryImage(widget.attachment.bytes);
+  ImageStream? _stream;
+  ImageStreamListener? _listener;
+
+  @override
+  void initState() {
+    super.initState();
+    // Notify when the image is decoded — its height is only known then, so the
+    // list can re-anchor to the bottom and not leave the last image clipped.
+    _listener = ImageStreamListener((_, __) => widget.onLoaded?.call());
+    _stream = _image.resolve(const ImageConfiguration())..addListener(_listener!);
+  }
+
+  @override
+  void dispose() {
+    if (_stream != null && _listener != null) {
+      _stream!.removeListener(_listener!);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,16 +92,18 @@ class _ImageAttachment extends StatelessWidget {
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.all(16),
           child: InteractiveViewer(
-            child: Image.memory(attachment.bytes, fit: BoxFit.contain),
+            child: Image(image: _image, fit: BoxFit.contain),
           ),
         ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.memory(
-          attachment.bytes,
+        child: Image(
+          image: _image,
           width: 260,
-          fit: BoxFit.cover,
+          // Constrain width only (height follows the aspect ratio) so the whole
+          // image is shown rather than cropped to a box. See #138.
+          fit: BoxFit.fitWidth,
           errorBuilder: (_, __, ___) => const _BrokenAttachment(label: 'image'),
         ),
       ),

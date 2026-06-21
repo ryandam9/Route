@@ -352,6 +352,11 @@ class _MessageListState extends ConsumerState<_MessageList> {
   int _lastCount = 0;
   bool _showJumpToLatest = false;
 
+  /// Whether the user is currently anchored to the bottom (following the chat).
+  /// Tracked so a late image decode can re-anchor without tugging the view when
+  /// the user has deliberately scrolled up. See #138.
+  bool _following = true;
+
   /// How close to the bottom (in px) still counts as "following" the chat.
   static const double _bottomThreshold = 160;
 
@@ -382,8 +387,20 @@ class _MessageListState extends ConsumerState<_MessageList> {
   }
 
   void _onScroll() {
+    _following = _nearBottom;
     final show = _controller.hasClients && !_nearBottom;
     if (show != _showJumpToLatest) setState(() => _showJumpToLatest = show);
+  }
+
+  /// An image attachment finished decoding (growing the list). If the user was
+  /// following the chat, re-anchor to the bottom so the last reply's image
+  /// isn't left clipped below the fold. See #138.
+  void _onAttachmentLoaded() {
+    if (!_following) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_following || !_controller.hasClients) return;
+      _controller.jumpTo(_controller.position.maxScrollExtent);
+    });
   }
 
   /// Follows the conversation as it grows, but only when the user is already
@@ -442,6 +459,7 @@ class _MessageListState extends ConsumerState<_MessageList> {
               message: message,
               modelName: convo.modelId,
               animate: !reduce && _animated.add(message.id),
+              onAttachmentLoaded: _onAttachmentLoaded,
             );
           },
         ),

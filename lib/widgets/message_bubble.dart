@@ -29,6 +29,7 @@ class MessageBubble extends ConsumerWidget {
     this.modelName,
     this.preferModelName = false,
     this.animate = true,
+    this.onAttachmentLoaded,
   });
 
   final ChatMessage message;
@@ -36,6 +37,11 @@ class MessageBubble extends ConsumerWidget {
   /// Whether to play the one-shot entrance animation. The list sets this to
   /// false for pre-existing messages so they don't replay on rebuild/scroll.
   final bool animate;
+
+  /// Called when an image attachment finishes decoding (and so changes the
+  /// bubble's height). Lets the message list re-anchor to the bottom, so the
+  /// last reply's image isn't left clipped below the fold. See #138.
+  final VoidCallback? onAttachmentLoaded;
 
   /// The model behind this message, used as the AI label fallback (and, when
   /// [preferModelName] is set, always). Typically the conversation's model id.
@@ -106,15 +112,16 @@ class MessageBubble extends ConsumerWidget {
           }),
           const SizedBox(height: 6),
           if (_isUser)
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: _bubbleContainer(
-                theme,
-                child: _UserText(content: message.content, settings: settings),
-              ),
+            _UserBubble(
+              message: message,
+              settings: settings,
+              onAttachmentLoaded: onAttachmentLoaded,
             )
           else
-            _AssistantBubble(message: message),
+            _AssistantBubble(
+              message: message,
+              onAttachmentLoaded: onAttachmentLoaded,
+            ),
         ],
       ),
     );
@@ -133,38 +140,66 @@ class MessageBubble extends ConsumerWidget {
     );
   }
 
-  Widget _bubbleContainer(ThemeData theme, {required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.colorScheme.primary),
-      ),
-      child: child,
-    );
-  }
 }
 
-/// Plain, selectable user-message text in the user's configured font.
-class _UserText extends StatelessWidget {
-  const _UserText({required this.content, required this.settings});
+/// A user message: their text in the configured font plus any attachments
+/// (images they sent, recorded audio, documents).
+class _UserBubble extends StatelessWidget {
+  const _UserBubble({
+    required this.message,
+    required this.settings,
+    this.onAttachmentLoaded,
+  });
 
-  final String content;
+  final ChatMessage message;
   final SettingsState settings;
+  final VoidCallback? onAttachmentLoaded;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return MediaQuery.withClampedTextScaling(
-      minScaleFactor: settings.userFontScale,
-      maxScaleFactor: settings.userFontScale,
-      child: Text(
-        content,
-        style: TextStyle(
-          color: theme.colorScheme.onPrimaryContainer,
-          fontFamily: settings.userFont.family,
+
+    final children = <Widget>[
+      if (message.content.isNotEmpty)
+        MediaQuery.withClampedTextScaling(
+          minScaleFactor: settings.userFontScale,
+          maxScaleFactor: settings.userFontScale,
+          child: Text(
+            message.content,
+            style: TextStyle(
+              color: theme.colorScheme.onPrimaryContainer,
+              fontFamily: settings.userFont.family,
+            ),
+          ),
         ),
+      for (final attachment in message.attachments)
+        Padding(
+          padding: EdgeInsets.only(top: message.content.isEmpty ? 0 : 8),
+          child: AttachmentView(
+            attachment: attachment,
+            onImageLoaded: onAttachmentLoaded,
+          ),
+        ),
+    ];
+
+    final body = children.length == 1
+        ? children.first
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: children,
+          );
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 560),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: theme.colorScheme.primary),
+        ),
+        child: body,
       ),
     );
   }
@@ -175,9 +210,10 @@ class _UserText extends StatelessWidget {
 /// shows the raw response verbatim, so nothing the renderer can't display is
 /// ever lost. See #128.
 class _AssistantBubble extends ConsumerStatefulWidget {
-  const _AssistantBubble({required this.message});
+  const _AssistantBubble({required this.message, this.onAttachmentLoaded});
 
   final ChatMessage message;
+  final VoidCallback? onAttachmentLoaded;
 
   @override
   ConsumerState<_AssistantBubble> createState() => _AssistantBubbleState();
@@ -251,7 +287,10 @@ class _AssistantBubbleState extends ConsumerState<_AssistantBubble> {
     for (final attachment in message.attachments) {
       children.add(Padding(
         padding: EdgeInsets.only(top: children.isEmpty ? 0 : 8),
-        child: AttachmentView(attachment: attachment),
+        child: AttachmentView(
+          attachment: attachment,
+          onImageLoaded: widget.onAttachmentLoaded,
+        ),
       ));
     }
     if (children.isEmpty) return const SizedBox.shrink();
