@@ -204,6 +204,10 @@ class _Header extends ConsumerWidget {
         ref.watch(chatProvider.select((c) => c.isResponding));
     final animate =
         ref.watch(settingsProvider.select((s) => s.animateModelIndicator));
+    // On narrow/collapsed layouts the secondary actions (incl. Debug) live in
+    // the overflow menu; on wide expanded layouts there is none, so surface a
+    // per-chat Debug action directly in the header instead. See #129.
+    final hasOverflow = showMenuButton || onExpandSidebar != null;
     return SafeArea(
       bottom: false,
       child: Padding(
@@ -236,13 +240,23 @@ class _Header extends ConsumerWidget {
               // "New chat" is reachable from the sidebar / collapsed rail (wide)
               // and the conversations drawer + FAB (narrow), so it isn't
               // duplicated in the chat header. See #130.
+              if (!hasOverflow)
+                IconButton(
+                  icon: const Icon(Icons.bug_report_outlined),
+                  tooltip: 'Debug',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const DebugScreen(),
+                    ),
+                  ),
+                ),
             ] else
               const Spacer(),
             // Secondary actions (Usage, Debug, Settings, …) live in the sidebar
             // navigation rail on wide layouts. Show them in a header overflow
             // menu only when the sidebar isn't available: on phones (drawer) or
             // when the wide sidebar is collapsed.
-            if (showMenuButton || onExpandSidebar != null) const _OverflowMenu(),
+            if (hasOverflow) const _OverflowMenu(),
           ],
         ),
       ),

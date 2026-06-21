@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wombat/models/attachment.dart';
 import 'package:wombat/models/chat_message.dart';
 import 'package:wombat/providers/settings_provider.dart';
+import 'package:wombat/screens/debug_screen.dart';
+import 'package:wombat/services/debug_log.dart';
 import 'package:wombat/theme/app_theme.dart';
 import 'package:wombat/widgets/message_bubble.dart';
 import 'package:wombat/widgets/save_button.dart';
@@ -153,6 +155,32 @@ void main() {
     await tester.pump();
     expect(find.byType(Html), findsOneWidget);
     expect(find.text(raw), findsNothing);
+  });
+
+  testWidgets('shows a Debug action that opens the recorded session',
+      (tester) async {
+    final debug = _container.read(debugLogProvider.notifier)..enabled = true;
+    final session = debug.begin(title: 'hello', model: 'm', requestBody: '{}')!;
+
+    final msg = ChatMessage(id: '1', role: MessageRole.assistant, content: 'hi')
+      ..debugSessionId = session.id;
+    await tester.pumpWidget(_wrap(msg));
+    await tester.pump();
+
+    expect(find.text('Debug'), findsOneWidget);
+    await tester.tap(find.text('Debug'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SessionDetailScreen), findsOneWidget);
+  });
+
+  testWidgets('no Debug action when the reply has no recorded session',
+      (tester) async {
+    // A reply with no debugSessionId (capture was off / cleared / restarted).
+    await tester.pumpWidget(_wrap(
+      ChatMessage(id: '1', role: MessageRole.assistant, content: 'hi'),
+    ));
+    await tester.pump();
+    expect(find.text('Debug'), findsNothing);
   });
 
   testWidgets('saves the full reply as Markdown, even for SVG content',

@@ -39,6 +39,19 @@ void main() {
     );
   }
 
+  // Wide layout: no menu button and no expand callback, so secondary actions
+  // (Debug) surface directly in the header rather than an overflow menu.
+  Future<void> pumpWide(WidgetTester tester, ProviderContainer container) {
+    return tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: Scaffold(body: ChatView()),
+        ),
+      ),
+    );
+  }
+
   testWidgets('initial launch hides the model selector, new chat and composer',
       (tester) async {
     final container = await load(tester);
@@ -69,6 +82,31 @@ void main() {
     // The header no longer carries a "New chat" action (#130) — it's reached
     // from the sidebar/drawer instead.
     expect(find.byTooltip('New chat'), findsNothing);
+  });
+
+  testWidgets('wide header exposes a per-chat Debug action', (tester) async {
+    final container = await load(tester);
+    await pumpWide(tester, container);
+
+    container.read(chatProvider.notifier).newConversation();
+    await tester.pump();
+
+    // The header carries Debug directly (no overflow menu on wide layouts).
+    expect(find.byTooltip('Debug'), findsOneWidget);
+  });
+
+  testWidgets('narrow header keeps Debug in the overflow, not inline',
+      (tester) async {
+    final container = await load(tester);
+    await pump(tester, container);
+
+    container.read(chatProvider.notifier).newConversation();
+    await tester.pump();
+
+    // On narrow layouts the inline header Debug icon is absent; Debug lives in
+    // the overflow menu instead.
+    expect(find.byTooltip('Debug'), findsNothing);
+    expect(find.byTooltip('More'), findsOneWidget);
   });
 
   testWidgets('deleting the active chat does not crash the message list',

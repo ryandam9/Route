@@ -153,6 +153,27 @@ void main() {
       expect(calls.any((c) => c.method == 'HapticFeedback.vibrate'), isTrue);
     });
 
+    test('tags the assistant reply with its debug session id', () async {
+      final service = FakeOpenRouterService(chunks: ['ok'])
+        ..debugSessionId = 'sess_abc';
+      final chat = await buildChat(service: service);
+
+      await chat.sendMessage('hello');
+
+      final assistant = chat.current!.messages.last;
+      expect(assistant.role, MessageRole.assistant);
+      expect(assistant.debugSessionId, 'sess_abc');
+    });
+
+    test('leaves debug session id null when capture is off', () async {
+      final service = FakeOpenRouterService(chunks: ['ok']);
+      final chat = await buildChat(service: service);
+
+      await chat.sendMessage('hello');
+
+      expect(chat.current!.messages.last.debugSessionId, isNull);
+    });
+
     test('appends user message and streamed assistant reply', () async {
       final service = FakeOpenRouterService(chunks: ['Hello', ' ', 'world']);
       final store = FakeConversationStore();

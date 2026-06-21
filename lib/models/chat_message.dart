@@ -50,6 +50,12 @@ class ChatMessage {
   /// Non-null if the request that produced this message failed.
   String? error;
 
+  /// Id of the in-memory [DebugSession] that produced this assistant reply,
+  /// when debug capture was on. Transient — not serialized or persisted, since
+  /// debug sessions live only in memory and are cleared on restart. Used to
+  /// open this exact interaction from the message's Debug action. See #129.
+  String? debugSessionId;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'role': role.wireName,
