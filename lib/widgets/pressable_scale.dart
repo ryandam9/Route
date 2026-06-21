@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Wraps [child] so it scales down slightly while pressed, giving tactile
 /// feedback on taps. Uses a [Listener] so it never steals the child's own tap
@@ -8,10 +9,15 @@ class PressableScale extends StatefulWidget {
     super.key,
     required this.child,
     this.scale = 0.96,
+    this.haptic = true,
   });
 
   final Widget child;
   final double scale;
+
+  /// Whether to emit a light selection tick on press-down for tactile feedback.
+  /// Disable for controls that already trigger their own haptics.
+  final bool haptic;
 
   @override
   State<PressableScale> createState() => _PressableScaleState();
@@ -21,7 +27,10 @@ class _PressableScaleState extends State<PressableScale> {
   bool _pressed = false;
 
   void _set(bool v) {
-    if (_pressed != v) setState(() => _pressed = v);
+    if (_pressed != v) {
+      if (v && widget.haptic) HapticFeedback.selectionClick();
+      setState(() => _pressed = v);
+    }
   }
 
   @override

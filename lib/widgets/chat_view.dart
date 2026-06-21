@@ -470,10 +470,22 @@ class _MessageListState extends ConsumerState<_MessageList> {
           child: Center(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
-              transitionBuilder: (child, animation) => ScaleTransition(
-                scale: animation,
-                child: FadeTransition(opacity: animation, child: child),
-              ),
+              transitionBuilder: (child, animation) {
+                final offset = Tween<Offset>(
+                  begin: const Offset(0, 0.5),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                ));
+                return SlideTransition(
+                  position: offset,
+                  child: FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  ),
+                );
+              },
               child: _showJumpToLatest
                   ? FilledButton.tonalIcon(
                       key: const ValueKey('jump-to-latest'),

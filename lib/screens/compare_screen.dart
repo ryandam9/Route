@@ -296,7 +296,7 @@ class _ResultCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),

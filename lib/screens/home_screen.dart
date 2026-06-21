@@ -151,20 +151,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Narrow (phone) layout: a Material 3 bottom navigation bar instead of a
     // left drawer/rail. Each tab is a self-contained screen; opening a chat
     // pushes the workspace as a full route, so the bottom bar is hidden there.
-    final Widget tab = switch (_tab) {
-      0 => _MobileChatsTab(onOpenChat: _openWorkspace),
-      1 => ModelPickerScreen(
-          onPicked: (model) {
-            ref.read(settingsProvider.notifier).setDefaultModel(model.id);
-            setState(() => _tab = 0); // back to Chats after choosing a default
-          },
-        ),
-      2 => const UsageScreen(),
-      _ => const SettingsScreen(),
-    };
-
+    //
+    // IndexedStack keeps every tab mounted so switching between them preserves
+    // scroll positions, search state and chart instances instead of rebuilding
+    // each pane from scratch.
     return Scaffold(
-      body: tab,
+      body: IndexedStack(
+        index: _tab,
+        children: [
+          _MobileChatsTab(onOpenChat: _openWorkspace),
+          ModelPickerScreen(
+            onPicked: (model) {
+              ref.read(settingsProvider.notifier).setDefaultModel(model.id);
+              setState(() => _tab = 0); // back to Chats after choosing a default
+            },
+          ),
+          const UsageScreen(),
+          const SettingsScreen(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),

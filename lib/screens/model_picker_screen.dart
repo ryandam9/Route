@@ -826,31 +826,18 @@ class _ModelCard extends StatelessWidget {
       ],
     );
 
-    final dark = theme.brightness == Brightness.dark;
-    final accent = _VendorAvatar.colorFor(model.vendor);
-    // Unselected cards carry a faint provider-tinted wash so providers are
-    // visually distinct and the card lifts off the page background.
+    // Selected cards get a primary tint + border; unselected cards stay clean
+    // with a hairline border so the grid reads calmly.
     final BoxDecoration decoration = selected
         ? BoxDecoration(
-            color: scheme.primaryContainer.withValues(alpha: 0.35),
+            color: scheme.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: scheme.primary, width: 1.5),
           )
         : BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color.alphaBlend(
-                  accent.withValues(alpha: dark ? 0.16 : 0.10),
-                  scheme.surfaceContainerHighest,
-                ),
-                scheme.surfaceContainerHighest,
-              ],
-              stops: const [0, 0.7],
-            ),
+            color: scheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: accent.withValues(alpha: 0.35)),
+            border: Border.all(color: scheme.outlineVariant),
           );
 
     return Material(

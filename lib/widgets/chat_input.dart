@@ -266,68 +266,83 @@ class _ChatInputState extends ConsumerState<ChatInput> {
                     : const SizedBox(width: double.infinity),
               ),
             ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _AttachMenu(onPick: _pick),
-                IconButton(
-                  tooltip: _recording ? 'Stop recording' : 'Record audio',
-                  icon: Icon(_recording ? Icons.stop_circle : Icons.mic_none),
-                  color: _recording ? theme.colorScheme.error : null,
-                  onPressed: _toggleRecording,
-                ),
-                Expanded(
-                  child: Focus(
-                    onKeyEvent: _onKey,
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      minLines: 1,
-                      maxLines: 6,
-                      textInputAction: TextInputAction.newline,
-                      keyboardType: TextInputType.multiline,
-                      decoration: InputDecoration(
-                        hintText: _recording
-                            ? 'Recording…'
-                            : 'Send a message…',
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHighest,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 4, vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _AttachMenu(onPick: _pick),
+                    IconButton(
+                      tooltip:
+                          _recording ? 'Stop recording' : 'Record audio',
+                      icon: Icon(
+                          _recording ? Icons.stop_circle : Icons.mic_none),
+                      color: _recording ? theme.colorScheme.error : null,
+                      onPressed: _toggleRecording,
+                    ),
+                    Expanded(
+                      child: Focus(
+                        onKeyEvent: _onKey,
+                        child: TextField(
+                          controller: _controller,
+                        focusNode: _focusNode,
+                        minLines: 1,
+                        maxLines: 6,
+                        textInputAction: TextInputAction.newline,
+                        keyboardType: TextInputType.multiline,
+                        decoration: InputDecoration(
+                          isCollapsed: true,
+                          hintText: _recording
+                              ? 'Recording…'
+                              : 'Send a message…',
+                          hintStyle: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant),
+                          filled: false,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 12),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
                         ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                PressableScale(
-                  child: AnimatedSwitcher(
-                    duration: motion.fast,
-                    transitionBuilder: (child, animation) => ScaleTransition(
-                      scale: animation,
-                      child: FadeTransition(opacity: animation, child: child),
+                  const SizedBox(width: 4),
+                  PressableScale(
+                    child: AnimatedSwitcher(
+                      duration: motion.fast,
+                      transitionBuilder: (child, animation) => ScaleTransition(
+                        scale: animation,
+                        child: FadeTransition(
+                            opacity: animation, child: child),
+                      ),
+                      child: isResponding
+                          ? IconButton.filledTonal(
+                              key: const ValueKey('stop'),
+                              tooltip: 'Stop',
+                              icon: const Icon(Icons.stop),
+                              onPressed: () => ref
+                                  .read(chatProvider.notifier)
+                                  .stopResponding(),
+                            )
+                          : IconButton.filled(
+                              key: const ValueKey('send'),
+                              tooltip: 'Send',
+                              icon: const Icon(Icons.arrow_upward),
+                              onPressed: _send,
+                            ),
                     ),
-                    child: isResponding
-                        ? IconButton.filledTonal(
-                            key: const ValueKey('stop'),
-                            tooltip: 'Stop',
-                            icon: const Icon(Icons.stop),
-                            onPressed: () => ref
-                                .read(chatProvider.notifier)
-                                .stopResponding(),
-                          )
-                        : IconButton.filled(
-                            key: const ValueKey('send'),
-                            tooltip: 'Send',
-                            icon: const Icon(Icons.arrow_upward),
-                            onPressed: _send,
-                          ),
                   ),
+                ],
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -497,11 +512,16 @@ class _PulsingDotState extends State<_PulsingDot>
     if (MediaQuery.of(context).disableAnimations) {
       return Icon(Icons.fiber_manual_record, size: 12, color: widget.color);
     }
-    return FadeTransition(
-      opacity: Tween(begin: 0.4, end: 1.0).animate(
+    return ScaleTransition(
+      scale: Tween(begin: 0.85, end: 1.15).animate(
         CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
       ),
-      child: Icon(Icons.fiber_manual_record, size: 12, color: widget.color),
+      child: FadeTransition(
+        opacity: Tween(begin: 0.4, end: 1.0).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+        ),
+        child: Icon(Icons.fiber_manual_record, size: 12, color: widget.color),
+      ),
     );
   }
 }

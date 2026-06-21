@@ -18,21 +18,22 @@ class DashboardLanding extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final hasKey = ref.watch(settingsProvider.select((s) => s.hasApiKey));
 
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
+          constraints: const BoxConstraints(maxWidth: 520),
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 350),
+            duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutCubic,
             builder: (context, t, child) => Opacity(
               opacity: t.clamp(0.0, 1.0),
               child: Transform.translate(
-                offset: Offset(0, (1 - t) * 16),
+                offset: Offset(0, (1 - t) * 12),
                 child: child,
               ),
             ),
@@ -42,22 +43,28 @@ class DashboardLanding extends ConsumerWidget {
               ClipOval(
                 child: Image.asset(
                   'assets/icon/app_icon.png',
-                  width: 96,
-                  height: 96,
+                  width: 80,
+                  height: 80,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Icon(Icons.pets,
-                      size: 84, color: theme.colorScheme.primary),
+                      size: 64, color: scheme.primary),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text('Wombat', style: theme.textTheme.headlineMedium),
+              const SizedBox(height: 18),
+              Text(
+                'Wombat',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
+              ),
               const SizedBox(height: 4),
               Text(
                 'Chat with LLMs via OpenRouter',
-                style: theme.textTheme.bodyLarge
-                    ?.copyWith(color: theme.colorScheme.outline),
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: scheme.onSurfaceVariant),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               SectionPanel(
                 title: 'Getting started',
                 child: Column(
@@ -167,18 +174,21 @@ class _StepNumber extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Container(
-      width: 24,
-      height: 24,
+      width: 22,
+      height: 22,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        border: Border.all(color: scheme.outline, width: 1.4),
       ),
       child: Text(
         '$step',
-        style: theme.textTheme.labelMedium
-            ?.copyWith(fontWeight: FontWeight.w700),
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -193,14 +203,15 @@ class _IconDisc extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Container(
-      width: 40,
-      height: 40,
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+        color: scheme.primary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(icon, size: 20, color: theme.colorScheme.primary),
+      child: Icon(icon, size: 18, color: scheme.primary),
     );
   }
 }

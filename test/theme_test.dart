@@ -31,18 +31,17 @@ void main() {
     );
   });
 
-  test('page headings are bigger and brand-tinted', () {
+  test('page headings use a frosted surface header', () {
     for (final t in [AppTheme.light, AppTheme.dark]) {
-      expect(t.appBarTheme.backgroundColor, t.colorScheme.primaryContainer);
-      expect(t.appBarTheme.foregroundColor, t.colorScheme.onPrimaryContainer);
-      expect(t.appBarTheme.titleTextStyle?.fontSize, 23);
+      expect(t.appBarTheme.backgroundColor, t.colorScheme.surface);
+      expect(t.appBarTheme.foregroundColor, t.colorScheme.onSurface);
+      expect(t.appBarTheme.titleTextStyle?.fontSize, 22);
       expect(t.appBarTheme.titleTextStyle?.fontWeight, FontWeight.w700);
     }
     // Seeded (non-default) accents get the same treatment.
     final seeded = AppTheme.lightFor(const Color(0xFF2E7D32));
-    expect(seeded.appBarTheme.backgroundColor,
-        seeded.colorScheme.primaryContainer);
-    expect(seeded.appBarTheme.titleTextStyle?.fontSize, 23);
+    expect(seeded.appBarTheme.backgroundColor, seeded.colorScheme.surface);
+    expect(seeded.appBarTheme.titleTextStyle?.fontSize, 22);
   });
 
   testWidgets('renders a Material app with AppTheme', (tester) async {

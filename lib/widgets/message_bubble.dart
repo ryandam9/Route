@@ -18,6 +18,7 @@ import '../services/debug_log.dart';
 import '../services/download_service.dart';
 import 'attachment_view.dart';
 import 'highlighted_code.dart';
+import 'model_color.dart';
 import 'save_button.dart';
 import 'ui_kit.dart';
 
@@ -103,6 +104,9 @@ class MessageBubble extends ConsumerWidget {
               style: theme.textTheme.labelSmall
                   ?.copyWith(color: theme.colorScheme.outline),
             );
+            // The assistant gets a small model-tinted orb avatar anchoring the
+            // turn; the user side stays clean.
+            final orb = _ModelOrb(modelId: modelName);
             // The name chip sits on the bubble's alignment edge: at the end
             // (after the time) for the right-aligned user, at the start for the
             // left-aligned assistant.
@@ -110,7 +114,7 @@ class MessageBubble extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: _isUser
                   ? [time, const SizedBox(width: 8), chip]
-                  : [chip, const SizedBox(width: 8), time],
+                  : [orb, const SizedBox(width: 8), chip, const SizedBox(width: 8), time],
             );
           }),
           const SizedBox(height: 6),
@@ -170,7 +174,7 @@ class _UserBubble extends StatelessWidget {
           child: Text(
             message.content,
             style: TextStyle(
-              color: theme.colorScheme.onPrimaryContainer,
+              color: theme.colorScheme.onPrimary,
               fontFamily: settings.userFont.family,
             ),
           ),
@@ -198,9 +202,13 @@ class _UserBubble extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: theme.colorScheme.primary),
+          color: theme.colorScheme.primary,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(18),
+            topRight: Radius.circular(18),
+            bottomLeft: Radius.circular(18),
+            bottomRight: Radius.circular(4),
+          ),
         ),
         child: body,
       ),
@@ -244,8 +252,13 @@ class _AssistantBubbleState extends ConsumerState<_AssistantBubble> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(14),
+            color: theme.colorScheme.surfaceContainerHigh,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(4),
+              topRight: Radius.circular(18),
+              bottomLeft: Radius.circular(18),
+              bottomRight: Radius.circular(18),
+            ),
             border: Border.all(color: theme.colorScheme.outlineVariant),
           ),
           child: _body(context, settings),
@@ -749,19 +762,48 @@ class _TypingIndicatorState extends State<_TypingIndicator>
         builder: (context, _) {
           return Row(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: List.generate(3, (i) {
               final t = (_controller.value - i * 0.2) % 1.0;
               final opacity = 0.3 + 0.7 * (1 - (t - 0.5).abs() * 2).clamp(0, 1);
+              // A small vertical bob synced to the opacity peak so the dots
+              // "talk" rather than only fading.
+              final dy = -3.0 * (1 - (t - 0.5).abs() * 2).clamp(0, 1);
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Opacity(
-                  opacity: opacity.toDouble(),
-                  child: CircleAvatar(radius: 3, backgroundColor: color),
+                child: Transform.translate(
+                  offset: Offset(0, dy),
+                  child: Opacity(
+                    opacity: opacity.toDouble(),
+                    child: CircleAvatar(radius: 3, backgroundColor: color),
+                  ),
                 ),
               );
             }),
           );
         },
+      ),
+    );
+  }
+}
+
+/// A small solid disc in the model's identity colour, anchoring each
+/// assistant turn. Quiet and consistent — the same model always reads as the
+/// same colour, so turns are distinguishable at a glance without noise.
+class _ModelOrb extends StatelessWidget {
+  const _ModelOrb({this.modelId});
+
+  final String? modelId;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = ModelColor.forModel(modelId);
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: accent,
+        shape: BoxShape.circle,
       ),
     );
   }

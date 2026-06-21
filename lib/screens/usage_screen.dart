@@ -838,7 +838,7 @@ class _ByModelCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
+          color: theme.colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
@@ -955,7 +955,7 @@ class _SummaryTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
@@ -964,7 +964,7 @@ class _SummaryTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.15),
+              color: theme.colorScheme.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, size: 18, color: theme.colorScheme.primary),
