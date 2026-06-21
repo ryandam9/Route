@@ -48,7 +48,9 @@ class AppTheme {
       // Sand/cream surface ramp — warm, high-contrast against ink outlines.
       surface: WombatColors.sand,
       onSurface: WombatColors.ink,
-      onSurfaceVariant: const Color(0xFF8A8270),
+      // Muted secondary tone, darkened to clear WCAG AA (≈5:1) on the cream/sand
+      // surfaces — the old #8A8270 only reached ~3.5:1 and read as faint.
+      onSurfaceVariant: const Color(0xFF6E6856),
       surfaceContainerLowest: WombatColors.cream,
       surfaceContainerLow: WombatColors.cream,
       surfaceContainer: WombatColors.sand,

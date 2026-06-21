@@ -40,7 +40,9 @@ class SectionPanel extends StatelessWidget {
             // Header: a coloured block with the title in bold caps.
             Container(
               width: double.infinity,
-              color: scheme.primary.withValues(alpha: 0.16),
+              // A stronger tint so the header reads as a distinct labelled
+              // block; the bold caps stay >11:1 against it in both themes.
+              color: scheme.primary.withValues(alpha: 0.30),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Text(
                 title.toUpperCase(),
