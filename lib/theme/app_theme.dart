@@ -25,7 +25,7 @@ class AppTheme {
       seed.toARGB32() == defaultSeed.toARGB32();
 
   /// Light theme generated from [seed].
-  static ThemeData lightFor(Color seed) => _isDefault(seed)
+  static ThemeData lightFor(Color seed) => _withAppBar(_isDefault(seed)
       ? _build(_defaultLightScheme(seed))
       : FlexThemeData.light(
           primary: seed,
@@ -34,10 +34,10 @@ class AppTheme {
           blendLevel: 2,
           appBarElevation: 0,
           useMaterial3: true,
-        );
+        ));
 
   /// Dark theme generated from [seed].
-  static ThemeData darkFor(Color seed) => _isDefault(seed)
+  static ThemeData darkFor(Color seed) => _withAppBar(_isDefault(seed)
       ? _build(ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark))
       : FlexThemeData.dark(
           primary: seed,
@@ -50,7 +50,30 @@ class AppTheme {
           blendLevel: 6,
           appBarElevation: 0,
           useMaterial3: true,
-        );
+        ));
+
+  /// A bigger, brand-tinted page header shared by every screen's [AppBar]:
+  /// a larger, bold title on a [ColorScheme.primaryContainer] background so
+  /// page headings stand out consistently across the app.
+  static ThemeData _withAppBar(ThemeData base) {
+    final scheme = base.colorScheme;
+    return base.copyWith(
+      appBarTheme: AppBarTheme(
+        backgroundColor: scheme.primaryContainer,
+        foregroundColor: scheme.onPrimaryContainer,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 2,
+        centerTitle: false,
+        titleTextStyle: (base.textTheme.titleLarge ?? const TextStyle()).copyWith(
+          color: scheme.onPrimaryContainer,
+          fontSize: 23,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
 
   /// The bespoke default light scheme: the seed drives the brand colours, while
   /// the surface ramp and outlines are tuned for crisp, layered, modern light
