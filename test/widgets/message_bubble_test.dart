@@ -295,4 +295,28 @@ void main() {
     expect(find.text('here is an image'), findsOneWidget);
     expect(find.byType(Image), findsOneWidget);
   });
+
+  testWidgets('renders attachments on user messages too', (tester) async {
+    // Regression: user-sent images must render (not just assistant replies).
+    const pngBase64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk'
+        '+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    await tester.pumpWidget(_wrap(
+      ChatMessage(
+        id: '1',
+        role: MessageRole.user,
+        content: 'look at this',
+        attachments: [
+          MessageAttachment.fromDataUrl(
+            'data:image/png;base64,$pngBase64',
+            kind: AttachmentKind.image,
+          ),
+        ],
+      ),
+    ));
+
+    expect(find.text('look at this'), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+  });
+
 }
