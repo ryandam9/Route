@@ -123,6 +123,10 @@ class FakeOpenRouterService extends OpenRouterService {
   List<OpenRouterModel> models = const [];
   Object? modelsError;
 
+  /// When set, reported back via [streamChat]'s onDebugSession callback so tests
+  /// can exercise the per-reply Debug correlation.
+  String? debugSessionId;
+
   @override
   Future<List<OpenRouterModel>> fetchModels(String apiKey) async {
     if (modelsError != null) throw modelsError!;
@@ -138,11 +142,13 @@ class FakeOpenRouterService extends OpenRouterService {
     void Function(TokenUsage usage)? onUsage,
     void Function(MessageAttachment image)? onImage,
     void Function(MessageAttachment audio)? onAudio,
+    void Function(String debugSessionId)? onDebugSession,
   }) async* {
     lastApiKey = apiKey;
     lastModel = model;
     lastImageOutput = imageOutput;
     lastMessages = List<ChatMessage>.from(messages);
+    if (debugSessionId != null) onDebugSession?.call(debugSessionId!);
     if (errorToThrow != null) throw errorToThrow!;
     for (final chunk in chunks) {
       yield chunk;

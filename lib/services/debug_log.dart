@@ -131,6 +131,15 @@ class DebugState {
 
   bool get isEmpty => sessions.isEmpty;
   int get length => sessions.length;
+
+  /// The session with [id], or null if it isn't (or no longer) recorded — e.g.
+  /// capture was off, or the log was cleared / restarted.
+  DebugSession? sessionById(String id) {
+    for (final s in sessions) {
+      if (s.id == id) return s;
+    }
+    return null;
+  }
 }
 
 /// Riverpod provider for the debug log. The notifier ([DebugLog]) is also passed

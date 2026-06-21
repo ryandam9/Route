@@ -92,7 +92,7 @@ class _SessionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => _SessionDetailScreen(session: session),
+            builder: (_) => SessionDetailScreen(session: session),
           ),
         ),
         child: Container(
@@ -156,17 +156,20 @@ class _SessionCard extends StatelessWidget {
 
 /// Full detail for one session: stat header, a filterable event timeline, and
 /// the assembled response / request / raw frames.
-class _SessionDetailScreen extends ConsumerStatefulWidget {
-  const _SessionDetailScreen({required this.session});
+/// Full detail for one debug [DebugSession] — its stat header, filterable event
+/// timeline and assembled response/request/raw frames. Public so a message's
+/// Debug action can open the exchange that produced it directly. See #129.
+class SessionDetailScreen extends ConsumerStatefulWidget {
+  const SessionDetailScreen({super.key, required this.session});
 
   final DebugSession session;
 
   @override
-  ConsumerState<_SessionDetailScreen> createState() =>
+  ConsumerState<SessionDetailScreen> createState() =>
       _SessionDetailScreenState();
 }
 
-class _SessionDetailScreenState extends ConsumerState<_SessionDetailScreen> {
+class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
   DebugCategory? _filter; // null == All
 
   DebugSession get session => widget.session;

@@ -11,6 +11,8 @@ import 'package:intl/intl.dart';
 import '../models/app_font.dart';
 import '../models/chat_message.dart';
 import '../providers/settings_provider.dart';
+import '../screens/debug_screen.dart';
+import '../services/debug_log.dart';
 import '../services/download_service.dart';
 import 'attachment_view.dart';
 import 'save_button.dart';
@@ -191,6 +193,11 @@ class _AssistantBubbleState extends ConsumerState<_AssistantBubble> {
     final theme = Theme.of(context);
     final settings = ref.watch(settingsProvider);
     final canToggle = message.content.isNotEmpty && !message.isStreaming;
+    // The debug session that produced this reply, when debug capture was on and
+    // it is still recorded. Lets the user inspect this exact interaction. #129.
+    final debugSession = message.debugSessionId == null
+        ? null
+        : ref.watch(debugLogProvider).sessionById(message.debugSessionId!);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,6 +228,7 @@ class _AssistantBubbleState extends ConsumerState<_AssistantBubble> {
                 showSource: _showSource,
                 onChanged: (v) => setState(() => _showSource = v),
               ),
+              if (debugSession != null) _DebugButton(session: debugSession),
             ],
           ),
       ],
@@ -471,6 +479,32 @@ class _SourceToggle extends StatelessWidget {
       icon: Icon(showSource ? Icons.visibility_outlined : Icons.code, size: 14),
       label: Text(showSource ? 'Rendered' : 'Source'),
       onPressed: () => onChanged(!showSource),
+    );
+  }
+}
+
+/// Opens the full debug detail for the exchange that produced this reply —
+/// model, request, streamed response, tokens, cost, timing and any errors.
+class _DebugButton extends StatelessWidget {
+  const _DebugButton({required this.session});
+
+  final DebugSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: const Size(0, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: const Icon(Icons.bug_report_outlined, size: 14),
+      label: const Text('Debug'),
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => SessionDetailScreen(session: session),
+        ),
+      ),
     );
   }
 }

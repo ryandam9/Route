@@ -109,6 +109,7 @@ class OpenRouterService {
     void Function(TokenUsage usage)? onUsage,
     void Function(MessageAttachment image)? onImage,
     void Function(MessageAttachment audio)? onAudio,
+    void Function(String debugSessionId)? onDebugSession,
   }) async* {
     final uri = Uri.parse('$_baseUrl/chat/completions');
     final request = http.Request('POST', uri)
@@ -131,6 +132,9 @@ class OpenRouterService {
       model: model,
       requestBody: request.body,
     );
+    // Hand the session id back so the caller can tie this exact exchange to the
+    // assistant message it produces (per-reply Debug action). See #129.
+    if (session != null) onDebugSession?.call(session.id);
 
     // Generated images can be repeated across the delta and the final message;
     // track what we've emitted so callers see each once.

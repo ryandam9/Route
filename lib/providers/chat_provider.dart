@@ -308,6 +308,7 @@ class ChatNotifier extends Notifier<ChatState> {
           model: convo.modelId,
           messages: history,
           imageOutput: convo.supportsImageOutput,
+          onDebugSession: (id) => assistantMsg.debugSessionId = id,
           onUsage: (usage) =>
               ref.read(usageProvider.notifier).record(convo.modelId, usage),
           onImage: (image) {

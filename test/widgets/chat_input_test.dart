@@ -110,6 +110,7 @@ class _NeverEndingService extends FakeOpenRouterService {
     void Function(TokenUsage usage)? onUsage,
     void Function(MessageAttachment image)? onImage,
     void Function(MessageAttachment audio)? onAudio,
+    void Function(String debugSessionId)? onDebugSession,
   }) async* {
     yield 'partial';
     await Completer<void>().future;
