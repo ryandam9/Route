@@ -131,6 +131,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             Expanded(
               child: PageTransitionSwitcher(
+                duration: motion.medium,
                 transitionBuilder: (child, primary, secondary) =>
                     FadeThroughTransition(
                   animation: primary,
@@ -164,8 +165,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     };
 
     return Scaffold(
-      body: tab,
+      body: PageTransitionSwitcher(
+        duration: motion.medium,
+        transitionBuilder: (child, primary, secondary) => FadeThroughTransition(
+          animation: primary,
+          secondaryAnimation: secondary,
+          child: child,
+        ),
+        child: KeyedSubtree(
+          key: ValueKey(_tab),
+          child: tab,
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
+        animationDuration: motion.medium,
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
@@ -296,51 +309,62 @@ class _CollapsedNavRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Destinations follow DashboardSection.values order.
-    return SingleChildScrollView(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
-        child: IntrinsicHeight(
-          child: NavigationRail(
-            extended: false,
-            labelType: NavigationRailLabelType.none,
-            selectedIndex: selected.index,
-            onDestinationSelected: (i) =>
-                onNavigate(DashboardSection.values[i]),
-            leading: IconButton(
-              tooltip: 'Show sidebar',
-              icon: const Icon(Icons.menu_open),
-              onPressed: onExpand,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final height = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : MediaQuery.of(context).size.height;
+
+        return SingleChildScrollView(
+          child: SizedBox(
+            height: height,
+            child: NavigationRail(
+              extended: false,
+              labelType: NavigationRailLabelType.none,
+              selectedIndex: selected.index,
+              onDestinationSelected: (i) =>
+                  onNavigate(DashboardSection.values[i]),
+              leading: IconButton(
+                tooltip: 'Show sidebar',
+                icon: const Icon(Icons.menu_open),
+                onPressed: onExpand,
+              ),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.history_outlined),
+                  selectedIcon: Icon(Icons.history),
+                  label: Text('Chats'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.grid_view_outlined),
+                  selectedIcon: Icon(Icons.grid_view),
+                  label: Text('Models'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.insights_outlined),
+                  selectedIcon: Icon(Icons.insights),
+                  label: Text('Usage'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.bug_report_outlined),
+                  selectedIcon: Icon(Icons.bug_report),
+                  label: Text('Debug'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings),
+                  label: Text('Settings'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.help_outline),
+                  selectedIcon: Icon(Icons.help),
+                  label: Text('Help'),
+                ),
+              ],
             ),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.history),
-                label: Text('Chats'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.grid_view_outlined),
-                label: Text('Models'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.insights_outlined),
-                label: Text('Usage'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.bug_report_outlined),
-                label: Text('Debug'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                label: Text('Settings'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.help_outline),
-                label: Text('Help'),
-              ),
-            ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
-
