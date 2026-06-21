@@ -321,7 +321,7 @@ class _ConversationListState extends ConsumerState<ConversationList> {
             ),
           ));
     }
-    rows.add(() => const Divider(height: 1));
+    rows.add(() => const SizedBox(height: 6));
 
     if (conversations.isEmpty) {
       rows.add(() => Padding(
@@ -488,13 +488,14 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 6),
       child: Text(
         text.toUpperCase(),
         style: theme.textTheme.labelSmall?.copyWith(
-          letterSpacing: 1.2,
+          letterSpacing: 1.4,
+          fontSize: 11,
           color: theme.colorScheme.outline,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -643,7 +644,7 @@ String _modelInitial(String modelId) {
 
 /// A coloured, rounded avatar with the model vendor's initial. Same vendor →
 /// same colour, so the list reads at a glance instead of a wall of identical
-/// rows.
+/// rows. A soft gradient + tinted shadow give it depth.
 class _ModelAvatar extends StatelessWidget {
   const _ModelAvatar({required this.modelId});
 
@@ -651,13 +652,28 @@ class _ModelAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = _modelColor(modelId);
     return Container(
-      width: 38,
-      height: 38,
+      width: 42,
+      height: 42,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: _modelColor(modelId),
-        borderRadius: BorderRadius.circular(11),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(color, Colors.white, 0.12)!,
+            Color.lerp(color, Colors.black, 0.20)!,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(13),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.35),
+            blurRadius: 7,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Text(
         _modelInitial(modelId),
@@ -665,6 +681,40 @@ class _ModelAvatar extends StatelessWidget {
           color: Colors.white,
           fontWeight: FontWeight.w700,
           fontSize: 16,
+        ),
+      ),
+    );
+  }
+}
+
+/// A small, vendor-coloured pill showing the short model name in the subtitle.
+class _ModelChip extends StatelessWidget {
+  const _ModelChip({required this.modelId});
+
+  final String modelId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final color = _modelColor(modelId);
+    final fg = dark
+        ? Color.lerp(color, Colors.white, 0.5)!
+        : Color.lerp(color, Colors.black, 0.18)!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: dark ? 0.22 : 0.13),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        _shortModel(modelId),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: fg,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
         ),
       ),
     );
@@ -685,33 +735,55 @@ class _ConversationTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    return ListTile(
-      selected: selected,
-      selectedTileColor:
-          theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-      leading: _ModelAvatar(modelId: conversation.modelId),
-      title: Text(
-        conversation.title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        selected: selected,
+        selectedTileColor: scheme.primaryContainer.withValues(alpha: 0.5),
+        hoverColor: scheme.onSurface.withValues(alpha: 0.04),
+        contentPadding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
+        minVerticalPadding: 10,
+        horizontalTitleGap: 12,
+        leading: _ModelAvatar(modelId: conversation.modelId),
+        title: Text(
+          conversation.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            children: [
+              Flexible(child: _ModelChip(modelId: conversation.modelId)),
+              const SizedBox(width: 8),
+              Text(
+                _formatDate(conversation.updatedAt),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.outline,
+                ),
+              ),
+            ],
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (conversation.pinned)
+              Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: Icon(Icons.push_pin, size: 15, color: scheme.primary),
+              ),
+            _ChatMenu(conversation: conversation),
+          ],
+        ),
+        onTap: onTap,
       ),
-      subtitle: Text(
-        '${_shortModel(conversation.modelId)}  ·  '
-        '${_formatDate(conversation.updatedAt)}',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall,
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (conversation.pinned)
-            Icon(Icons.push_pin, size: 16, color: theme.colorScheme.primary),
-          _ChatMenu(conversation: conversation),
-        ],
-      ),
-      onTap: onTap,
     );
   }
 
