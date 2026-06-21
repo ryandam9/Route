@@ -30,7 +30,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector>
   );
 
   String? _lastModelId;
-  bool? _lastContinuous;
+  bool _wasSpinning = false;
 
   @override
   void dispose() {
@@ -38,30 +38,37 @@ class _ModelSelectorState extends ConsumerState<ModelSelector>
     super.dispose();
   }
 
-  /// Drives the border animation in response to model changes and the
-  /// continuous-animation setting. Safe to call on every build: it only acts
-  /// when something relevant actually changed.
-  void _syncAnimation(String modelId, bool continuous, bool reduce) {
+  /// Drives the border animation. The border spins continuously while the model
+  /// is **responding** (a clear, glanceable "working" cue around the model) or
+  /// when the continuous-border setting is on; otherwise it sweeps once on a
+  /// model change and settles. Safe to call on every build — it only acts when
+  /// something relevant changed.
+  void _syncAnimation(
+      String modelId, bool continuous, bool responding, bool reduce) {
     final modelChanged = modelId != _lastModelId;
-    final continuousChanged = continuous != _lastContinuous;
     _lastModelId = modelId;
-    _lastContinuous = continuous;
 
     // Reduced motion: keep the border static.
     if (reduce) {
       if (_controller.isAnimating) _controller.stop();
       _controller.value = 0;
+      _wasSpinning = false;
       return;
     }
 
-    if (continuous) {
-      // Start (or keep) the endless spin.
-      if (continuousChanged || !_controller.isAnimating) _controller.repeat();
+    final spin = continuous || responding;
+    if (spin) {
+      if (!_controller.isAnimating) _controller.repeat();
     } else {
-      // Stop spinning if we just turned it off; sweep once on a model change.
-      if (continuousChanged) _controller.stop();
-      if (modelChanged || continuousChanged) _controller.forward(from: 0);
+      // Just stopped spinning (e.g. the reply finished): settle the border.
+      if (_wasSpinning) {
+        _controller.stop();
+        _controller.value = 0;
+      }
+      // Sweep once to acknowledge a model change.
+      if (modelChanged) _controller.forward(from: 0);
     }
+    _wasSpinning = spin;
   }
 
   Future<void> _openPicker() async {
@@ -85,8 +92,10 @@ class _ModelSelectorState extends ConsumerState<ModelSelector>
     final locked = current != null && current.messages.isNotEmpty;
     final continuous =
         ref.watch(settingsProvider.select((s) => s.continuousModelBorder));
-    _syncAnimation(
-        modelId, continuous, MediaQuery.of(context).disableAnimations);
+    final responding =
+        ref.watch(chatProvider.select((c) => c.isResponding));
+    _syncAnimation(modelId, continuous, responding,
+        MediaQuery.of(context).disableAnimations);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
@@ -99,6 +108,9 @@ class _ModelSelectorState extends ConsumerState<ModelSelector>
     ];
 
     const radius = 22.0;
+    // A thicker, glowing border while the model works makes the activity
+    // obvious around the pill; the resting border stays thin and subtle.
+    final borderWidth = responding ? 2.6 : 1.6;
 
     return Center(
       child: AnimatedBuilder(
@@ -112,14 +124,23 @@ class _ModelSelectorState extends ConsumerState<ModelSelector>
                 transform:
                     GradientRotation(_controller.value * 2 * math.pi),
               ),
+              boxShadow: responding
+                  ? [
+                      BoxShadow(
+                        color: scheme.primary.withValues(alpha: 0.45),
+                        blurRadius: 9,
+                        spreadRadius: 0.5,
+                      ),
+                    ]
+                  : null,
             ),
-            padding: const EdgeInsets.all(1.6),
+            padding: EdgeInsets.all(borderWidth),
             child: child,
           );
         },
         child: Material(
           color: scheme.surface,
-          borderRadius: BorderRadius.circular(radius - 1.6),
+          borderRadius: BorderRadius.circular(radius - borderWidth),
           clipBehavior: Clip.antiAlias,
           child: Tooltip(
             message: locked
