@@ -11,10 +11,21 @@ import 'package:highlight/highlight.dart' show highlight;
 /// When no [language] is given (or it's unknown) the language is auto-detected;
 /// an unrecognised language falls back to plain (un-highlighted) text.
 class HighlightedCode extends StatelessWidget {
-  const HighlightedCode({super.key, required this.code, this.language});
+  const HighlightedCode({
+    super.key,
+    required this.code,
+    this.language,
+    required this.fontFamily,
+    this.fontSize = 14.5,
+  });
 
   final String code;
   final String? language;
+
+  /// A real monospace family (e.g. the configured `monoFont`). The literal
+  /// `'monospace'` alias only resolves on Android, so it must be passed in.
+  final String fontFamily;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -46,10 +57,10 @@ class HighlightedCode extends StatelessWidget {
           language: _resolveLanguage(),
           theme: theme,
           padding: const EdgeInsets.all(12),
-          textStyle: const TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 13,
-            height: 1.4,
+          textStyle: TextStyle(
+            fontFamily: fontFamily,
+            fontSize: fontSize,
+            height: 1.45,
           ),
         ),
       ),
