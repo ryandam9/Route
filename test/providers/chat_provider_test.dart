@@ -279,6 +279,24 @@ void main() {
       expect(chat.conversations.first.id, isNot(first.id));
     });
 
+    test('a new conversation sorts below pinned chats', () async {
+      final chat = await buildChat();
+      final pinned = chat.newConversation();
+      chat.togglePin(pinned.id);
+
+      final fresh = chat.newConversation();
+
+      // The pinned chat stays first; the brand-new chat is second.
+      expect(chat.conversations.first.id, pinned.id);
+      expect(chat.conversations[1].id, fresh.id);
+    });
+
+    test('the emitted conversations list is unmodifiable', () async {
+      final chat = await buildChat();
+      chat.newConversation();
+      expect(() => chat.conversations.removeAt(0), throwsUnsupportedError);
+    });
+
     test('renameConversation updates the title; blank titles are ignored',
         () async {
       final chat = await buildChat();

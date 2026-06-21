@@ -67,28 +67,28 @@ class ChatNotifier extends Notifier<ChatState> {
   }
 
   ChatState _snapshot() => ChatState(
-        conversations: _sorted(),
+        conversations: List.unmodifiable(_conversations),
         current: _current,
         loading: _loading,
         isResponding: _isResponding,
         error: _error,
       );
 
-  /// Conversations ordered for display: pinned first, then by recency.
-  List<Conversation> _sorted() {
-    final list = List<Conversation>.from(_conversations);
-    list.sort((a, b) {
+  /// Sorts [_conversations] in place for display: pinned first, then by
+  /// recency. Called only when the order can actually change (load, pin,
+  /// new/updated conversation) rather than on every state emit.
+  void _sortConversations() {
+    _conversations.sort((a, b) {
       if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
       return b.updatedAt.compareTo(a.updatedAt);
     });
-    return list;
   }
 
   void _emit() => state = _snapshot();
 
   // Convenience accessors mirroring the current state (handy for callers that
   // hold the notifier directly, e.g. tests).
-  List<Conversation> get conversations => _sorted();
+  List<Conversation> get conversations => List.unmodifiable(_conversations);
   Conversation? get current => _current;
   bool get loading => _loading;
   bool get isResponding => _isResponding;
@@ -96,7 +96,7 @@ class ChatNotifier extends Notifier<ChatState> {
 
   Future<void> _init() async {
     _conversations = await _store.load();
-    _conversations.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    _sortConversations();
     if (_conversations.isNotEmpty) _current = _conversations.first;
     _loading = false;
     _emit();
@@ -141,6 +141,7 @@ class ChatNotifier extends Notifier<ChatState> {
       modelId: ref.read(settingsProvider).defaultModel,
     );
     _conversations.insert(0, convo);
+    _sortConversations(); // place below any pinned chats
     _current = convo;
     _error = null;
     _emit();
@@ -153,6 +154,7 @@ class ChatNotifier extends Notifier<ChatState> {
     final match = _conversations.where((c) => c.id == id);
     if (match.isEmpty) return;
     match.first.pinned = !match.first.pinned;
+    _sortConversations();
     _emit();
     _persist();
   }
@@ -247,7 +249,7 @@ class ChatNotifier extends Notifier<ChatState> {
     convo.updatedAt = DateTime.now();
     _isResponding = true;
     _error = null;
-    _bumpToTop(convo);
+    _sortConversations(); // updatedAt just bumped → moves to top of its group
     _emit();
 
     // Build the request history: everything except the placeholder reply and
@@ -325,13 +327,9 @@ class ChatNotifier extends Notifier<ChatState> {
   void _finish(Conversation convo) {
     _isResponding = false;
     convo.updatedAt = DateTime.now();
+    _sortConversations();
     _endStreaming();
     _persist();
-  }
-
-  void _bumpToTop(Conversation convo) {
-    _conversations.removeWhere((c) => c.id == convo.id);
-    _conversations.insert(0, convo);
   }
 
   Future<void> _persist() => _store.save(_conversations);
