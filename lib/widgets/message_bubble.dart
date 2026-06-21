@@ -392,11 +392,11 @@ class _AssistantBubbleState extends ConsumerState<_AssistantBubble> {
         // Fenced code blocks render with syntax highlighting (HighlightedCode
         // draws its own bordered box, so the default codeblock decoration is
         // cleared to avoid a double border). Inline `code` keeps its styling.
-        builders: {'pre': _CodeBlockBuilder()},
+        builders: {'pre': _CodeBlockBuilder(settings.monoFont.family)},
         styleSheet: base.copyWith(
           p: base.p?.copyWith(color: scheme.onSurface),
           code: base.code?.copyWith(
-            fontFamily: 'monospace',
+            fontFamily: settings.monoFont.family,
             color: scheme.onSurface,
             backgroundColor: codeBg,
           ),
@@ -451,7 +451,9 @@ class _AssistantBubbleState extends ConsumerState<_AssistantBubble> {
 /// `<pre>` element wraps a `<code class="language-xxx">` for fenced blocks; the
 /// language (when present) drives the highlighting.
 class _CodeBlockBuilder extends MarkdownElementBuilder {
-  _CodeBlockBuilder();
+  _CodeBlockBuilder(this.monoFamily);
+
+  final String monoFamily;
 
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
@@ -467,7 +469,11 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
         }
       }
     }
-    return HighlightedCode(code: element.textContent, language: language);
+    return HighlightedCode(
+      code: element.textContent,
+      language: language,
+      fontFamily: monoFamily,
+    );
   }
 }
 
@@ -525,6 +531,7 @@ class _HtmlView extends StatelessWidget {
                 language: langClass.isEmpty
                     ? null
                     : langClass.substring('language-'.length),
+                fontFamily: settings.monoFont.family,
               );
             },
           ),
@@ -539,7 +546,7 @@ class _HtmlView extends StatelessWidget {
           'a': Style(color: scheme.primary),
           // Inline code keeps a monospace font on a distinct background.
           'code': Style(
-            fontFamily: 'monospace',
+            fontFamily: settings.monoFont.family,
             backgroundColor: scheme.surfaceContainerLowest,
           ),
         },
@@ -565,7 +572,7 @@ class _SourceText extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontFamily: 'monospace',
+          fontFamily: settings.monoFont.family,
           color: scheme.onSurface,
           height: 1.4,
         ),
