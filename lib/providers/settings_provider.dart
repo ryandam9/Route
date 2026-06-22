@@ -20,6 +20,7 @@ class SettingsState {
     required this.defaultModel,
     required this.themeMode,
     required this.seedColor,
+    this.bgColor,
     required this.downloadDir,
     required this.animateModelIndicator,
     required this.continuousModelBorder,
@@ -49,6 +50,9 @@ class SettingsState {
 
   /// Accent ("seed") colour both themes are generated from.
   final Color seedColor;
+
+  /// Optional curated background tint (null → the theme default).
+  final Color? bgColor;
   final String? downloadDir;
   final bool animateModelIndicator;
   final bool continuousModelBorder;
@@ -96,6 +100,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
   static const _kDefaultModel = 'default_model';
   static const _kThemeMode = 'theme_mode';
   static const _kSeedColor = 'seed_color';
+  static const _kBgColor = 'bg_color';
   static const _kDownloadDir = 'download_dir';
   static const _kAnimateModelIndicator = 'animate_model_indicator';
   static const _kContinuousModelBorder = 'continuous_model_border';
@@ -131,6 +136,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
   String _defaultModel = 'openai/gpt-4o-mini';
   ThemeMode _themeMode = ThemeMode.system;
   Color _seedColor = AppTheme.defaultSeed;
+  Color? _bgColor;
   String? _downloadDir;
   bool _animateModelIndicator = false;
   bool _continuousModelBorder = false;
@@ -168,6 +174,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
         defaultModel: _defaultModel,
         themeMode: _themeMode,
         seedColor: _seedColor,
+        bgColor: _bgColor,
         downloadDir: _downloadDir,
         animateModelIndicator: _animateModelIndicator,
         continuousModelBorder: _continuousModelBorder,
@@ -228,6 +235,8 @@ class SettingsNotifier extends Notifier<SettingsState> {
     }
     final seed = _prefs.getInt(_kSeedColor);
     if (seed != null) _seedColor = Color(seed);
+    final bg = _prefs.getInt(_kBgColor);
+    if (bg != null) _bgColor = Color(bg);
     _loading = false;
     _emit();
   }
@@ -393,6 +402,17 @@ class SettingsNotifier extends Notifier<SettingsState> {
   Future<void> setSeedColor(Color color) async {
     _seedColor = color;
     await _prefs.setInt(_kSeedColor, color.toARGB32());
+    _emit();
+  }
+
+  /// Sets (or clears, when [color] is null) the curated background tint.
+  Future<void> setBgColor(Color? color) async {
+    _bgColor = color;
+    if (color == null) {
+      await _prefs.remove(_kBgColor);
+    } else {
+      await _prefs.setInt(_kBgColor, color.toARGB32());
+    }
     _emit();
   }
 }

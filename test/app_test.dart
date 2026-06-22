@@ -8,7 +8,7 @@ import 'helpers/fakes.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('wraps the app in a SelectionArea so text is selectable',
+  testWidgets('builds without a global SelectionArea (selection is scoped)',
       (tester) async {
     late ProviderContainer container;
     await tester.runAsync(() async {
@@ -24,7 +24,10 @@ void main() {
     );
     await tester.pump();
 
-    // The app-wide SelectionArea makes text selectable on every screen.
-    expect(find.byType(SelectionArea), findsWidgets);
+    // Selection is scoped to the chat transcript (see ChatView) rather than a
+    // single app-wide SelectionArea, which tripped a SelectableRegion framework
+    // crash. The dashboard has no transcript, so no SelectionArea here.
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SelectionArea), findsNothing);
   });
 }

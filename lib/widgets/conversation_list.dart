@@ -449,12 +449,10 @@ class _Header extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(onBack != null ? 4 : 16, 12, 8, 12),
       child: Row(
         children: [
-          if (onBack != null)
-            IconButton(
-              tooltip: 'Back to dashboard',
-              icon: const Icon(Icons.arrow_back),
-              onPressed: onBack,
-            ),
+          if (onBack != null) ...[
+            _NeoBackButton(onTap: onBack!),
+            const SizedBox(width: 8),
+          ],
           ClipOval(
             child: Image.asset(
               'assets/icon/app_icon.png',
@@ -482,6 +480,67 @@ class _Header extends StatelessWidget {
               onPressed: onCollapse,
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// A chunky, playful "back" control: a bordered, accent-tinted Neo button whose
+/// arrow springs left on hover and mashes flat on press — more characterful
+/// than a bare arrow icon.
+class _NeoBackButton extends StatefulWidget {
+  const _NeoBackButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  State<_NeoBackButton> createState() => _NeoBackButtonState();
+}
+
+class _NeoBackButtonState extends State<_NeoBackButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    return Tooltip(
+      message: 'Back to dashboard',
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: PressableScale(
+          mode: PressMode.neo,
+          shadowOffset: AppTokens.shadowSm,
+          borderRadius: AppTokens.radiusSm,
+          child: Material(
+            color: Color.alphaBlend(
+                scheme.primary.withValues(alpha: 0.16),
+                scheme.surfaceContainerLow),
+            borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: widget.onTap,
+              child: Container(
+                width: 42,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+                  border:
+                      Border.all(color: scheme.outline, width: AppTokens.border),
+                ),
+                child: AnimatedSlide(
+                  duration: reduce ? Duration.zero : AppTokens.durFast,
+                  curve: Curves.easeOutBack,
+                  offset: Offset(_hover && !reduce ? -0.16 : 0, 0),
+                  child: Icon(Icons.arrow_back_rounded,
+                      size: 20, color: scheme.primary),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -778,10 +837,18 @@ class _ConversationTile extends ConsumerWidget {
       // Material ancestor.
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: selected ? scheme.primary : null,
+          // Selected keeps a readable surface (faint primary tint) + a bold
+          // primary border, rather than flooding with the accent — a dark or
+          // saturated custom accent would otherwise leave the title, model chip
+          // and date low-contrast.
+          color: selected
+              ? Color.alphaBlend(
+                  scheme.primary.withValues(alpha: 0.12),
+                  scheme.surfaceContainerLow)
+              : null,
           borderRadius: BorderRadius.circular(12),
           border: selected
-              ? Border.all(color: scheme.outline, width: 2)
+              ? Border.all(color: scheme.primary, width: 2.5)
               : null,
           boxShadow: selected
               ? [
@@ -813,7 +880,7 @@ class _ConversationTile extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
-                color: selected ? scheme.onPrimary : scheme.onSurface,
+                color: scheme.onSurface,
               ),
             ),
             subtitle: Padding(
@@ -825,9 +892,7 @@ class _ConversationTile extends ConsumerWidget {
                   Text(
                     _formatDate(conversation.updatedAt),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: selected
-                          ? scheme.onPrimary.withValues(alpha: 0.8)
-                          : scheme.outline,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -839,11 +904,7 @@ class _ConversationTile extends ConsumerWidget {
                 if (conversation.pinned)
                   Padding(
                     padding: const EdgeInsets.only(right: 2),
-                    child: Icon(Icons.push_pin,
-                        size: 15,
-                        color: selected
-                            ? scheme.onPrimary
-                            : scheme.primary),
+                    child: Icon(Icons.push_pin, size: 15, color: scheme.primary),
                   ),
                 _ChatMenu(conversation: conversation),
               ],

@@ -99,18 +99,23 @@ class _ModelSelectorState extends ConsumerState<ModelSelector>
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    // Multi-stop sweep so the border reads as a continuous moving glow.
+    // Multi-stop sweep with a bright "shine" stop so the moving highlight is
+    // clearly visible as it rotates (the plain accent-only sweep was too subtle
+    // to read, especially with a muted custom accent).
+    final shine = Color.lerp(scheme.primary, Colors.white, 0.7)!;
     final colors = <Color>[
       scheme.primary,
       scheme.tertiary,
+      shine,
       scheme.secondary,
+      shine,
       scheme.primary,
     ];
 
     const radius = 22.0;
-    // A thicker, glowing border while the model works makes the activity
-    // obvious around the pill; the resting border stays bold and chunky.
-    final borderWidth = responding ? 2.6 : 2.0;
+    // A chunky, glowing border while the model works makes the activity obvious
+    // around the pill; the resting border stays bold so the sweep reads clearly.
+    final borderWidth = responding ? 3.4 : 2.6;
 
     return Center(
       child: Hero(
