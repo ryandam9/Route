@@ -149,8 +149,7 @@ class _StartStep extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(description,
                     style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.55))),
+                        color: theme.colorScheme.onSurfaceVariant)),
               ],
             ),
           ),
