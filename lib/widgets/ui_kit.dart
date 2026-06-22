@@ -29,22 +29,28 @@ class SectionPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final accent = this.accent ?? scheme.primary;
-    return Material(
-      color: scheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(AppTokens.radiusMd),
-      clipBehavior: Clip.antiAlias,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppTokens.radiusMd),
-          border: Border.all(color: scheme.outline, width: AppTokens.border),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.shadow,
-              offset: AppTokens.shadowSm,
-              blurRadius: 0,
-            ),
-          ],
-        ),
+    // Fill + border + hard shadow live together in an OUTER decoration so the
+    // blur-0 shadow is occluded by the fill (otherwise it paints across the
+    // whole panel and it reads as a dark block). The Material inside is
+    // transparent so any ListTile content paints its ink correctly — ListTile
+    // asserts if a coloured DecoratedBox sits between it and its Material.
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+        border: Border.all(color: scheme.outline, width: AppTokens.border),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.shadow,
+            offset: AppTokens.shadowSm,
+            blurRadius: 0,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
