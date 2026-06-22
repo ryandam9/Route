@@ -323,11 +323,11 @@ class _ChatInputState extends ConsumerState<ChatInput> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   PressableScale(
                     mode: PressMode.neo,
                     shadowOffset: AppTokens.shadowSm,
-                    borderRadius: 24,
+                    borderRadius: AppTokens.radiusMd,
                     child: AnimatedSwitcher(
                       duration: motion.fast,
                       transitionBuilder: (child, animation) => ScaleTransition(
@@ -336,18 +336,19 @@ class _ChatInputState extends ConsumerState<ChatInput> {
                             opacity: animation, child: child),
                       ),
                       child: isResponding
-                          ? IconButton.filledTonal(
+                          ? _ComposerButton(
                               key: const ValueKey('stop'),
+                              icon: Icons.stop,
                               tooltip: 'Stop',
-                              icon: const Icon(Icons.stop),
+                              tonal: true,
                               onPressed: () => ref
                                   .read(chatProvider.notifier)
                                   .stopResponding(),
                             )
-                          : IconButton.filled(
+                          : _ComposerButton(
                               key: const ValueKey('send'),
+                              icon: Icons.arrow_upward,
                               tooltip: 'Send',
-                              icon: const Icon(Icons.arrow_upward),
                               onPressed: _send,
                             ),
                     ),
@@ -533,6 +534,54 @@ class _PulsingDotState extends State<_PulsingDot>
           CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
         ),
         child: Icon(Icons.fiber_manual_record, size: 12, color: widget.color),
+      ),
+    );
+  }
+}
+
+/// The composer send / stop control: a chunky bordered Neo button (thick ink
+/// outline + hard offset shadow via the wrapping [PressableScale]) so it stays
+/// clearly readable on any accent — including dark custom accents where the old
+/// circular filled button blended in. [tonal] gives the Stop state a neutral
+/// surface fill to distinguish it from the accent-filled Send.
+class _ComposerButton extends StatelessWidget {
+  const _ComposerButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.tonal = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final bool tonal;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final bg = tonal ? scheme.surfaceContainerHighest : scheme.primary;
+    final fg = tonal ? scheme.onSurface : scheme.onPrimary;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: Container(
+            width: 50,
+            height: 46,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+              border: Border.all(color: scheme.outline, width: AppTokens.border),
+            ),
+            child: Icon(icon, size: 22, color: fg),
+          ),
+        ),
       ),
     );
   }

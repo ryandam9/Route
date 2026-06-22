@@ -58,34 +58,31 @@ class WombatApp extends ConsumerWidget {
     final headingFont =
         ref.watch(settingsProvider.select((s) => s.headingFont));
     final seed = ref.watch(settingsProvider.select((s) => s.seedColor));
+    final bg = ref.watch(settingsProvider.select((s) => s.bgColor));
     final reduce = ref.watch(settingsProvider.select((s) => s.reduceMotion));
     return MaterialApp(
       title: 'Wombat',
       debugShowCheckedModeBanner: false,
-      theme: _withHeadingFont(AppTheme.lightFor(seed), headingFont, reduce),
-      darkTheme: _withHeadingFont(AppTheme.darkFor(seed), headingFont, reduce),
+      theme: _withHeadingFont(
+          AppTheme.lightFor(seed, background: bg), headingFont, reduce),
+      darkTheme: _withHeadingFont(
+          AppTheme.darkFor(seed, background: bg), headingFont, reduce),
       themeMode: themeMode,
-      // Make text selectable anywhere in the app. SelectionArea needs an
-      // Overlay ancestor for its selection handles/toolbar; the app's own
-      // Navigator overlay is a descendant here, so we provide one above it.
-      // TextFields keep their own editing selection.
+      // Fold the "Reduce motion" setting into MediaQuery.disableAnimations so
+      // it propagates everywhere (Motion helper, shimmer, implicit anims).
       //
-      // Also fold the "Reduce motion" setting into MediaQuery.disableAnimations
-      // so it propagates everywhere (Motion helper, shimmer, implicit anims).
-      builder: (context, child) => Overlay(
-        initialEntries: [
-          OverlayEntry(
-            builder: (context) {
-              final mq = MediaQuery.of(context);
-              return MediaQuery(
-                data: mq.copyWith(
-                    disableAnimations: mq.disableAnimations || reduce),
-                child: SelectionArea(child: child ?? const SizedBox()),
-              );
-            },
-          ),
-        ],
-      ),
+      // Text selection is scoped to the chat transcript (see ChatView) rather
+      // than a single app-wide SelectionArea: wrapping the whole, constantly
+      // rebuilding/animating UI tripped a framework ConcurrentModificationError
+      // in SelectableRegion as the set of selectables churned.
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(
+              disableAnimations: mq.disableAnimations || reduce),
+          child: child ?? const SizedBox(),
+        );
+      },
       home: const HomeScreen(),
     );
   }

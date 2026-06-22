@@ -393,11 +393,14 @@ class _ResultBody extends StatelessWidget {
     }
     // Reuse the chat bubble's Markdown/SVG/image rendering and copy/save.
     // Force the model name so each column stays distinct (ignore the global
-    // custom AI name here).
-    return MessageBubble(
-      message: run.message,
-      modelName: run.model.name,
-      preferModelName: true,
+    // custom AI name here). Wrapped in its own SelectionArea so replies stay
+    // selectable (selection is scoped per-surface now — see app.dart).
+    return SelectionArea(
+      child: MessageBubble(
+        message: run.message,
+        modelName: run.model.name,
+        preferModelName: true,
+      ),
     );
   }
 }

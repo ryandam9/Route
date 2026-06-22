@@ -23,13 +23,13 @@ class AppTheme {
   static bool _isDefault(Color seed) =>
       seed.toARGB32() == defaultSeed.toARGB32();
 
-  static ThemeData lightFor(Color seed) =>
-      _compose(_lightScheme(seed), Brightness.light);
+  static ThemeData lightFor(Color seed, {Color? background}) =>
+      _compose(_lightScheme(seed, background), Brightness.light);
 
-  static ThemeData darkFor(Color seed) =>
-      _compose(_darkScheme(seed), Brightness.dark);
+  static ThemeData darkFor(Color seed, {Color? background}) =>
+      _compose(_darkScheme(seed, background), Brightness.dark);
 
-  static ColorScheme _lightScheme(Color seed) {
+  static ColorScheme _lightScheme(Color seed, [Color? background]) {
     final brand = _isDefault(seed) ? WombatColors.clay : seed;
     return ColorScheme.fromSeed(seedColor: brand, brightness: Brightness.light)
         .copyWith(
@@ -46,7 +46,9 @@ class AppTheme {
       tertiaryContainer: WombatColors.wombatBrown.withValues(alpha: 0.18),
       onTertiaryContainer: WombatColors.ink,
       // Sand/cream surface ramp — warm, high-contrast against ink outlines.
-      surface: WombatColors.sand,
+      // A curated background tint, when chosen, re-tints the scaffold surface
+      // while the cream panels (surfaceContainerLow) stay put for contrast.
+      surface: background ?? WombatColors.sand,
       onSurface: WombatColors.ink,
       // Muted secondary tone, darkened to clear WCAG AA (≈5:1) on the cream/sand
       // surfaces — the old #8A8270 only reached ~3.5:1 and read as faint.
@@ -64,7 +66,7 @@ class AppTheme {
     );
   }
 
-  static ColorScheme _darkScheme(Color seed) {
+  static ColorScheme _darkScheme(Color seed, [Color? background]) {
     final brand = _isDefault(seed) ? WombatColors.clay : seed;
     return ColorScheme.fromSeed(seedColor: brand, brightness: Brightness.dark)
         .copyWith(
@@ -80,8 +82,12 @@ class AppTheme {
       onTertiary: WombatColors.charcoal,
       tertiaryContainer: WombatColors.skyBlue.withValues(alpha: 0.20),
       onTertiaryContainer: WombatColors.cream,
-      // Charcoal surface ramp — deep, with bright bone outlines.
-      surface: WombatColors.charcoal,
+      // Charcoal surface ramp — deep, with bright bone outlines. A chosen
+      // background tint is blended faintly over the charcoal so it stays dark.
+      surface: background == null
+          ? WombatColors.charcoal
+          : Color.alphaBlend(
+              background.withValues(alpha: 0.06), WombatColors.charcoal),
       onSurface: WombatColors.cream,
       onSurfaceVariant: const Color(0xFFC9C3B4),
       surfaceContainerLowest: const Color(0xFF16161C),

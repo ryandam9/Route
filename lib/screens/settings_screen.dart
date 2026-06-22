@@ -437,6 +437,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _flashSaved();
           },
         ),
+        const SizedBox(height: 16),
+        Text('BACKGROUND', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: 10),
+        _BackgroundPicker(
+          selected: settings.bgColor,
+          onChanged: (c) {
+            ref.read(settingsProvider.notifier).setBgColor(c);
+            _flashSaved();
+          },
+        ),
         const SizedBox(height: 4),
         SwitchListTile(
           value: settings.reduceMotion,
@@ -859,6 +869,91 @@ class _ColorDot extends StatelessWidget {
         child: selected
             ? const Icon(Icons.check, color: Colors.white, size: 20)
             : null,
+      ),
+    );
+  }
+}
+
+/// Curated background tints. Each re-tints the scaffold surface while panels
+/// stay on the cream/charcoal container colour for contrast. "Default" clears
+/// the override (null).
+class _BackgroundPicker extends StatelessWidget {
+  const _BackgroundPicker({required this.selected, required this.onChanged});
+
+  final Color? selected;
+  final ValueChanged<Color?> onChanged;
+
+  // Shown for the "Default" swatch (matches the light theme's sand surface).
+  static const _sand = Color(0xFFF5EFE0);
+  static const _presets = <(String, Color?)>[
+    ('Default', null),
+    ('Cream', Color(0xFFFBF7EC)),
+    ('Sky', Color(0xFFEAF1F7)),
+    ('Mint', Color(0xFFE9F3EC)),
+    ('Lavender', Color(0xFFF1ECF8)),
+    ('Peach', Color(0xFFF9EEE6)),
+    ('Rose', Color(0xFFF8ECEF)),
+    ('Slate', Color(0xFFECEEF1)),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final selKey = selected?.toARGB32();
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        for (final (label, c) in _presets)
+          _BgDot(
+            label: label,
+            color: c ?? _sand,
+            selected: c?.toARGB32() == selKey,
+            onTap: () => onChanged(c),
+          ),
+      ],
+    );
+  }
+}
+
+class _BgDot extends StatelessWidget {
+  const _BgDot({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: label,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 26,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            // A bold outline so the subtle light tints stay distinguishable
+            // from the page behind them.
+            border: Border.all(
+              color: selected ? scheme.onSurface : scheme.outline,
+              width: selected ? 3 : 2,
+            ),
+          ),
+          // Dark check so it's visible on the light swatch.
+          child: selected
+              ? Icon(Icons.check, color: scheme.onSurface, size: 20)
+              : null,
+        ),
       ),
     );
   }

@@ -446,22 +446,25 @@ class _MessageListState extends ConsumerState<_MessageList> {
     final reduce = ref.watch(settingsProvider.select((s) => s.reduceMotion)) ||
         MediaQuery.of(context).disableAnimations;
 
-    // Messages are selectable via the app-wide SelectionArea (see app.dart).
+    // Selection is scoped to the transcript only (not the whole app) — see the
+    // note in app.dart about the SelectableRegion framework crash.
     return Stack(
       children: [
-        ListView.builder(
-          controller: _controller,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-          itemCount: convo.messages.length,
-          itemBuilder: (context, index) {
-            final message = convo.messages[index];
-            return MessageBubble(
-              message: message,
-              modelName: convo.modelId,
-              animate: !reduce && _animated.add(message.id),
-              onAttachmentLoaded: _onAttachmentLoaded,
-            );
-          },
+        SelectionArea(
+          child: ListView.builder(
+            controller: _controller,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            itemCount: convo.messages.length,
+            itemBuilder: (context, index) {
+              final message = convo.messages[index];
+              return MessageBubble(
+                message: message,
+                modelName: convo.modelId,
+                animate: !reduce && _animated.add(message.id),
+                onAttachmentLoaded: _onAttachmentLoaded,
+              );
+            },
+          ),
         ),
         Positioned(
           left: 0,
