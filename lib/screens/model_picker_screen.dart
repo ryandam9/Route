@@ -909,7 +909,7 @@ class _ModelCard extends StatelessWidget {
                 scheme.primary.withValues(alpha: 0.10),
                 scheme.surfaceContainerLow),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: scheme.primary, width: 3),
+            border: Border.all(color: accentOutline(scheme), width: 3),
           )
         : BoxDecoration(
             color: scheme.surfaceContainerLow,
