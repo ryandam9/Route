@@ -13,7 +13,11 @@ import 'ui_kit.dart';
 /// checklist. Shown as the desktop home centre pane and as the empty state of
 /// a chat with no messages.
 class DashboardLanding extends ConsumerWidget {
-  const DashboardLanding({super.key});
+  const DashboardLanding({super.key, this.onStartChat});
+
+  /// When provided, a prominent "Start new chat" call‑to‑action is shown. The
+  /// chat empty‑state (where you're already in a conversation) leaves it null.
+  final VoidCallback? onStartChat;
 
   void _openSettings(BuildContext context) => Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
@@ -69,6 +73,10 @@ class DashboardLanding extends ConsumerWidget {
                 style: theme.textTheme.bodyMedium
                     ?.copyWith(color: scheme.onSurfaceVariant),
               ),
+              if (onStartChat != null) ...[
+                const SizedBox(height: 28),
+                _StartChatCta(onTap: onStartChat!),
+              ],
               const SizedBox(height: 28),
               SectionPanel(
                 title: 'Getting started',
@@ -125,6 +133,60 @@ class DashboardLanding extends ConsumerWidget {
           ),
         ),
       ),
+      ),
+    );
+  }
+}
+
+/// The landing page's primary call-to-action: a large, unmistakable Neo
+/// Brutalist "Start new chat" block that presses flat and lifts on hover.
+class _StartChatCta extends StatelessWidget {
+  const _StartChatCta({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return PressableScale(
+      mode: PressMode.neo,
+      shadowOffset: AppTokens.shadowMd,
+      borderRadius: AppTokens.radiusMd,
+      child: Material(
+        color: scheme.primary,
+        borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+              border: Border.all(
+                  color: scheme.outline, width: AppTokens.borderThick),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add, color: scheme.onPrimary, size: 22),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    'Start new chat',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: scheme.onPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

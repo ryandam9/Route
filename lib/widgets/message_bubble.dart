@@ -241,8 +241,24 @@ class _AssistantBubble extends ConsumerStatefulWidget {
 
 class _AssistantBubbleState extends ConsumerState<_AssistantBubble> {
   bool _showSource = false;
+  bool _hovered = false;
 
   ChatMessage get message => widget.message;
+
+  /// Whether this platform has a pointer that can hover. On touch platforms the
+  /// actions can't be hover-revealed, so they stay visible.
+  bool _hasHover(BuildContext context) {
+    switch (Theme.of(context).platform) {
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+        return true;
+      case TargetPlatform.android:
+      case TargetPlatform.iOS:
+      case TargetPlatform.fuchsia:
+        return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -255,52 +271,70 @@ class _AssistantBubbleState extends ConsumerState<_AssistantBubble> {
         ? null
         : ref.watch(debugLogProvider).sessionById(message.debugSessionId!);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // Keep the transcript calm to read: on desktop the action row stays faded
+    // until you hover the reply; on touch it's always shown. The row keeps its
+    // space either way so the layout never jumps.
+    final reveal = !_hasHover(context) || _hovered;
+    final actions = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLow,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(4),
-              bottomLeft: Radius.circular(4),
-              bottomRight: Radius.circular(16),
-            ),
-            border: Border.all(
-                color: theme.colorScheme.onSurfaceVariant, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.shadow,
-                offset: const Offset(4, 4),
-                blurRadius: 0,
-              ),
-            ],
-          ),
-          child: _body(context, settings),
+        _CopyButton(text: message.content),
+        // Save the reply verbatim as Markdown — don't guess the output
+        // type (it isn't always an SVG). See #126.
+        SaveButton(
+          compact: true,
+          bytes: () => utf8.encode(message.content),
+          baseName: 'wombat-reply',
+          mimeType: 'text/markdown',
         ),
-        if (canToggle)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _CopyButton(text: message.content),
-              // Save the reply verbatim as Markdown — don't guess the output
-              // type (it isn't always an SVG). See #126.
-              SaveButton(
-                compact: true,
-                bytes: () => utf8.encode(message.content),
-                baseName: 'wombat-reply',
-                mimeType: 'text/markdown',
-              ),
-              _SourceToggle(
-                showSource: _showSource,
-                onChanged: (v) => setState(() => _showSource = v),
-              ),
-              if (debugSession != null) _DebugButton(session: debugSession),
-            ],
-          ),
+        _SourceToggle(
+          showSource: _showSource,
+          onChanged: (v) => setState(() => _showSource = v),
+        ),
+        if (debugSession != null) _DebugButton(session: debugSession),
       ],
+    );
+
+    return MouseRegion(
+      onEnter: (_) {
+        if (!_hovered) setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (_hovered) setState(() => _hovered = false);
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLow,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(4),
+                bottomLeft: Radius.circular(4),
+                bottomRight: Radius.circular(16),
+              ),
+              border: Border.all(
+                  color: theme.colorScheme.onSurfaceVariant, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.shadow,
+                  offset: const Offset(4, 4),
+                  blurRadius: 0,
+                ),
+              ],
+            ),
+            child: _body(context, settings),
+          ),
+          if (canToggle)
+            AnimatedOpacity(
+              opacity: reveal ? 1 : 0,
+              duration: const Duration(milliseconds: 140),
+              child: IgnorePointer(ignoring: !reveal, child: actions),
+            ),
+        ],
+      ),
     );
   }
 

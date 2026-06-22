@@ -23,6 +23,12 @@ class AppTheme {
   static bool _isDefault(Color seed) =>
       seed.toARGB32() == defaultSeed.toARGB32();
 
+  /// Foreground colour (ink or cream) that stays legible on [bg]. Used so a
+  /// custom accent of any lightness keeps `onPrimary` readable rather than a
+  /// fixed cream/charcoal that fails on very light or awkward accents.
+  static Color _onAccent(Color bg) =>
+      bg.computeLuminance() > 0.5 ? WombatColors.ink : WombatColors.cream;
+
   static ThemeData lightFor(Color seed, {Color? background}) =>
       _compose(_lightScheme(seed, background), Brightness.light);
 
@@ -34,7 +40,7 @@ class AppTheme {
     return ColorScheme.fromSeed(seedColor: brand, brightness: Brightness.light)
         .copyWith(
       primary: brand,
-      onPrimary: WombatColors.cream,
+      onPrimary: _onAccent(brand),
       primaryContainer: brand.withValues(alpha: 0.18),
       onPrimaryContainer: WombatColors.ink,
       secondary: WombatColors.eucalyptus,
@@ -71,7 +77,7 @@ class AppTheme {
     return ColorScheme.fromSeed(seedColor: brand, brightness: Brightness.dark)
         .copyWith(
       primary: brand,
-      onPrimary: WombatColors.charcoal,
+      onPrimary: _onAccent(brand),
       primaryContainer: brand.withValues(alpha: 0.22),
       onPrimaryContainer: WombatColors.cream,
       secondary: WombatColors.eucalyptus,
@@ -293,7 +299,44 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-          side: BorderSide(color: outline, width: AppTokens.border),
+          side: BorderSide(color: outline, width: AppTokens.borderThick),
+        ),
+      ),
+      // Chunky bordered segmented control: a flat primary block marks the
+      // selection instead of the soft Material pill.
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          side: WidgetStateProperty.all(
+              BorderSide(color: outline, width: AppTokens.border)),
+          shape: WidgetStateProperty.all(RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+          )),
+          backgroundColor: WidgetStateProperty.resolveWith((states) =>
+              states.contains(WidgetState.selected)
+                  ? scheme.primary
+                  : scheme.surfaceContainerLow),
+          foregroundColor: WidgetStateProperty.resolveWith((states) =>
+              states.contains(WidgetState.selected)
+                  ? scheme.onPrimary
+                  : scheme.onSurface),
+          overlayColor: WidgetStateProperty.all(
+              scheme.primary.withValues(alpha: 0.12)),
+          // Keep the default label size so segment text ("System") doesn't wrap
+          // in narrow panels; the chunky block + border carry the Neo look.
+          padding: WidgetStateProperty.all(
+              const EdgeInsets.symmetric(horizontal: 6)),
+        ),
+      ),
+      // A bordered, flat dropdown menu surface to match the panel system.
+      dropdownMenuTheme: DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+          backgroundColor: WidgetStateProperty.all(scheme.surface),
+          elevation: WidgetStateProperty.all(0),
+          shape: WidgetStateProperty.all(RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+            side: BorderSide(color: outline, width: AppTokens.border),
+          )),
         ),
       ),
       tabBarTheme: TabBarThemeData(
