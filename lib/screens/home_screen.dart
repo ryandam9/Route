@@ -71,7 +71,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _sectionPane() {
     switch (_section) {
       case DashboardSection.chat:
-        return const DashboardLanding();
+        return DashboardLanding(
+          onStartChat: () {
+            ref.read(chatProvider.notifier).newConversation();
+            _openWorkspace();
+          },
+        );
       case DashboardSection.models:
         return ModelPickerScreen(
           onPicked: (model) {
@@ -274,7 +279,7 @@ class _MobileChatsTab extends ConsumerWidget {
               showNavigation: false,
               onOpenChat: onOpenChat,
             )
-          : const DashboardLanding(),
+          : DashboardLanding(onStartChat: () => _newChat(ref)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _newChat(ref),
         icon: const Icon(Icons.add),

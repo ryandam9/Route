@@ -253,8 +253,8 @@ class _ConversationListState extends ConsumerState<ConversationList> {
       rows
         ..add(() => const _SectionLabel('Navigation'))
         ..add(() => _NavItem(
-            icon: Icons.history,
-            label: 'Chat history',
+            icon: Icons.forum_outlined,
+            label: 'All chats',
             selected: _isSelected(DashboardSection.chat),
             onTap: _openHistory))
         ..add(() => _NavItem(
@@ -744,34 +744,34 @@ class _ModelAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final color = _modelColor(modelId);
+    // Flat fill + thick outline + hard offset shadow, to match the Neo
+    // Brutalist card system (was a soft gradient + blurred shadow).
+    final fg = color.computeLuminance() > 0.5
+        ? WombatColors.ink
+        : WombatColors.cream;
     return Container(
       width: 42,
       height: 42,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color.lerp(color, Colors.white, 0.12)!,
-            Color.lerp(color, Colors.black, 0.20)!,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(13),
+        color: color,
+        borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+        border: Border.all(color: scheme.outline, width: AppTokens.border),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.35),
-            blurRadius: 7,
-            offset: const Offset(0, 2),
+            color: scheme.shadow,
+            offset: AppTokens.shadowSm,
+            blurRadius: 0,
           ),
         ],
       ),
       child: Text(
         _modelInitial(modelId),
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.w800,
           fontSize: 16,
         ),
       ),

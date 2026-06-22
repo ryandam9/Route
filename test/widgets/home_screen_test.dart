@@ -115,7 +115,7 @@ void main() {
 
     expect(find.text('NAVIGATION'), findsOneWidget);
     expect(find.text('RECENT CHATS'), findsOneWidget);
-    for (final label in ['Chat history', 'Models', 'Usage', 'Debug',
+    for (final label in ['All chats', 'Models', 'Usage', 'Debug',
       'Settings']) {
       expect(find.text(label), findsOneWidget, reason: 'missing nav item $label');
     }
@@ -163,7 +163,7 @@ void main() {
     expect(find.textContaining('View all'), findsOneWidget);
 
     // Opening the full history (Chat history page) lists all 7, grouped by date.
-    await tester.tap(find.text('Chat history'));
+    await tester.tap(find.text('All chats'));
     await tester.pumpAndSettle();
     expect(find.byType(ListTile), findsNWidgets(7));
     expect(find.text('TODAY'), findsOneWidget);
@@ -181,7 +181,7 @@ void main() {
     await tester.pumpWidget(await buildApp(tester, conversations: convos));
     await tester.pump();
 
-    await tester.tap(find.text('Chat history'));
+    await tester.tap(find.text('All chats'));
     await tester.pumpAndSettle();
     expect(find.byType(ListTile), findsNWidgets(3));
 
@@ -205,7 +205,7 @@ void main() {
     // The dashboard centre is the landing, not a chat view.
     expect(find.byType(ChatView), findsNothing);
 
-    await tester.tap(find.text('Chat history'));
+    await tester.tap(find.text('All chats'));
     await tester.pumpAndSettle();
 
     // The workspace page (chat + history) is now shown, with a back affordance.
