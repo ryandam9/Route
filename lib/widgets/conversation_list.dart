@@ -537,11 +537,14 @@ class _NavItem extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
-        color: selected ? scheme.primary : Colors.transparent,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         clipBehavior: Clip.antiAlias,
         child: DecoratedBox(
           decoration: BoxDecoration(
+            // Fill in the same decoration as the hard shadow so it isn't
+            // painted over (see SectionPanel).
+            color: selected ? scheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             border: selected
                 ? Border.all(color: scheme.outline, width: 2)
@@ -768,26 +771,32 @@ class _ConversationTile extends ConsumerWidget {
     final scheme = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      child: Material(
-        color: selected ? scheme.primary : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        clipBehavior: Clip.antiAlias,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: selected
-                ? Border.all(color: scheme.outline, width: 2)
-                : null,
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: scheme.shadow,
-                      offset: const Offset(3, 3),
-                      blurRadius: 0,
-                    ),
-                  ]
-                : null,
-          ),
+      // The fill+border+shadow live together in an OUTER decoration (so the
+      // hard shadow is occluded by the fill, not painted across the tile), with
+      // a transparent Material inside that the ListTile paints its ink onto —
+      // ListTile asserts if a coloured DecoratedBox sits between it and its
+      // Material ancestor.
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected ? scheme.primary : null,
+          borderRadius: BorderRadius.circular(12),
+          border: selected
+              ? Border.all(color: scheme.outline, width: 2)
+              : null,
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: scheme.shadow,
+                    offset: const Offset(3, 3),
+                    blurRadius: 0,
+                  ),
+                ]
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          clipBehavior: Clip.antiAlias,
           child: ListTile(
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)),
