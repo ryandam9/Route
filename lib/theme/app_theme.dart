@@ -174,7 +174,12 @@ class AppTheme {
           side: BorderSide(color: outline, width: AppTokens.border),
         ),
         side: BorderSide(color: outline, width: AppTokens.border),
-        labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+        // An explicit label colour: without one, unselected chip labels fell
+        // back to a near-invisible default (filter chips, debug event-stream).
+        labelStyle: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
       ),
       dialogTheme: DialogThemeData(
         elevation: 0,
@@ -262,17 +267,19 @@ class AppTheme {
         trackHeight: 6,
       ),
       switchTheme: SwitchThemeData(
+        // A thick outline + a contrasting thumb so the control always reads as
+        // a toggle (the old off-state was a faint light pill with a near-
+        // invisible light thumb), and the on/off state is obvious.
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return scheme.onPrimary;
-          return scheme.surfaceContainerHighest;
+          return scheme.outline; // dark knob on the light off-track
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return scheme.primary;
           return scheme.surfaceContainerHighest;
         }),
-        trackOutlineColor:
-            WidgetStateProperty.all(Colors.transparent),
-        trackOutlineWidth: WidgetStateProperty.all(0),
+        trackOutlineColor: WidgetStateProperty.all(outline),
+        trackOutlineWidth: WidgetStateProperty.all(AppTokens.border),
       ),
       popupMenuTheme: PopupMenuThemeData(
         color: scheme.surface,

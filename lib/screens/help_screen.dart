@@ -250,9 +250,14 @@ class _HelpTopic extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      clipBehavior: Clip.antiAlias,
+    // Fill + border + hard shadow together in the OUTER decoration so the
+    // blur-0 shadow is occluded by the fill (otherwise it paints across the
+    // whole card and it reads as a dark block). A transparent Material inside
+    // keeps the ExpansionTile's ListTile happy (it asserts when a coloured
+    // DecoratedBox sits between it and its Material ancestor).
+    return DecoratedBox(
       decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.colorScheme.outline, width: 2),
         boxShadow: [
@@ -263,10 +268,14 @@ class _HelpTopic extends StatelessWidget {
           ),
         ],
       ),
-      child: Theme(
-        // Remove ExpansionTile's default top/bottom divider lines.
-        data: theme.copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: Theme(
+          // Remove ExpansionTile's default top/bottom divider lines.
+          data: theme.copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
           leading: Icon(icon, color: theme.colorScheme.primary),
           title: Text(
             title,
@@ -281,6 +290,7 @@ class _HelpTopic extends StatelessWidget {
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
           children: [detail],
+        ),
         ),
       ),
     );

@@ -631,9 +631,10 @@ class _FilterBar extends StatelessWidget {
                 showCheckmark: true,
                 checkmarkColor: accentFg,
                 selectedColor: _accent.withValues(alpha: dark ? 0.28 : 0.16),
-                labelStyle: selected
-                    ? TextStyle(color: accentFg, fontWeight: FontWeight.w600)
-                    : null,
+                labelStyle: TextStyle(
+                  color: selected ? accentFg : theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
                 side: selected
                     ? BorderSide(color: accentFg, width: 1.5)
                     : null,
@@ -881,16 +882,21 @@ class _ModelCard extends StatelessWidget {
       ],
     );
 
-    // Neo Brutalist cards: thick outline + hard offset shadow always; selected
-    // cards invert to a primary colour block so the choice is unmistakable.
+    // Neo Brutalist cards: thick outline + hard offset shadow always. The
+    // selected card keeps the readable surface fill (with a faint primary tint)
+    // and a bold primary border, rather than flooding the whole card with the
+    // accent — a saturated/dark custom accent would otherwise leave the title,
+    // capability chips and stats low-contrast.
     // The shadow is cast by the wrapping PressableScale so it can lift on hover
     // and collapse flat on press.
     final shadowOffset = selected ? const Offset(4, 4) : const Offset(3, 3);
     final BoxDecoration decoration = selected
         ? BoxDecoration(
-            color: scheme.primary,
+            color: Color.alphaBlend(
+                scheme.primary.withValues(alpha: 0.10),
+                scheme.surfaceContainerLow),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: scheme.outline, width: 2.5),
+            border: Border.all(color: scheme.primary, width: 3),
           )
         : BoxDecoration(
             color: scheme.surfaceContainerLow,
