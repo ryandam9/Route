@@ -284,6 +284,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'Clear reverts to the environment value.',
           ),
         ],
+        if (settings.apiKeyReadFailed && !settings.hasApiKey) ...[
+          const SizedBox(height: 12),
+          const InfoBanner(
+            title: "Couldn't unlock your saved key",
+            message: 'Your API key is still saved on this device, but the '
+                'secure store could not be read just now (it may have been '
+                'temporarily locked). Tap Retry, or re-enter your key below to '
+                'overwrite it.',
+            kind: BannerKind.warning,
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () =>
+                  ref.read(settingsProvider.notifier).reloadApiKey(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         TextField(
           controller: _keyController,

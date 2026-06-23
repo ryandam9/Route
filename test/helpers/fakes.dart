@@ -27,6 +27,35 @@ class FakeSecureStorageService extends SecureStorageService {
   Future<void> deleteApiKey() async => _value = null;
 }
 
+/// A [SecureStorageService] whose reads throw [SecureStorageReadException]
+/// while [failReads] is true (a stored key that can't be unlocked), then
+/// recover. Writes/deletes always succeed.
+class FlakySecureStorageService extends SecureStorageService {
+  FlakySecureStorageService({String? initial, this.failReads = true})
+      : _value = initial;
+
+  String? _value;
+  bool failReads;
+
+  @override
+  Future<String?> readApiKey() async {
+    if (failReads) throw SecureStorageReadException('locked');
+    return _value;
+  }
+
+  @override
+  Future<void> writeApiKey(String value) async {
+    _value = value;
+    failReads = false;
+  }
+
+  @override
+  Future<void> deleteApiKey() async {
+    _value = null;
+    failReads = false;
+  }
+}
+
 /// In-memory [ConversationStore] that records every write for assertions.
 class FakeConversationStore extends ConversationStore {
   FakeConversationStore({List<Conversation>? initial})

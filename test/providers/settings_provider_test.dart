@@ -99,6 +99,76 @@ void main() {
     expect(c.read(settingsProvider).apiKeyFromEnvironment, isTrue);
   });
 
+  group('secure-store read failure', () {
+    test('a failed read is not treated as a missing key', () async {
+      final c = await createContainer(
+        secureStorage:
+            FlakySecureStorageService(initial: 'stored-key', failReads: true),
+      );
+      addTearDown(c.dispose);
+
+      final s = c.read(settingsProvider);
+      // The key couldn't be unlocked this session…
+      expect(s.hasApiKey, isFalse);
+      // …but we flag it as a read failure rather than "no key configured".
+      expect(s.apiKeyReadFailed, isTrue);
+    });
+
+    test('a failed read does NOT fall back to the environment key', () async {
+      final c = await createContainer(
+        secureStorage:
+            FlakySecureStorageService(initial: 'stored-key', failReads: true),
+        environment: const {'OPENROUTER_API_KEY': 'env-key'},
+      );
+      addTearDown(c.dispose);
+
+      final s = c.read(settingsProvider);
+      // The saved key may still be there, so we must not silently swap in the
+      // environment value (which could point at a different account).
+      expect(s.apiKey, isNull);
+      expect(s.apiKeyFromEnvironment, isFalse);
+      expect(s.apiKeyReadFailed, isTrue);
+    });
+
+    test('reloadApiKey recovers the key once the store unlocks', () async {
+      final storage =
+          FlakySecureStorageService(initial: 'stored-key', failReads: true);
+      final c = await createContainer(secureStorage: storage);
+      addTearDown(c.dispose);
+
+      expect(c.read(settingsProvider).apiKeyReadFailed, isTrue);
+
+      // Store becomes readable again; the retry action picks the key back up.
+      storage.failReads = false;
+      await c.read(settingsProvider.notifier).reloadApiKey();
+
+      final s = c.read(settingsProvider);
+      expect(s.apiKey, 'stored-key');
+      expect(s.hasApiKey, isTrue);
+      expect(s.apiKeyReadFailed, isFalse);
+    });
+
+    test('saving a key clears the read-failure flag', () async {
+      final c = await createContainer(
+        secureStorage:
+            FlakySecureStorageService(initial: 'stored-key', failReads: true),
+      );
+      addTearDown(c.dispose);
+      expect(c.read(settingsProvider).apiKeyReadFailed, isTrue);
+
+      await c.read(settingsProvider.notifier).setApiKey('fresh-key');
+      final s = c.read(settingsProvider);
+      expect(s.apiKey, 'fresh-key');
+      expect(s.apiKeyReadFailed, isFalse);
+    });
+
+    test('a clean read leaves the read-failure flag down', () async {
+      final c = await createContainer(apiKey: 'stored-key');
+      addTearDown(c.dispose);
+      expect(c.read(settingsProvider).apiKeyReadFailed, isFalse);
+    });
+  });
+
   test('setDefaultModel and setThemeMode persist to prefs', () async {
     final c = await createContainer(prefs: const {});
     addTearDown(c.dispose);

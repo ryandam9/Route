@@ -17,6 +17,7 @@ class SettingsState {
     required this.loading,
     required this.apiKey,
     required this.apiKeyFromEnvironment,
+    this.apiKeyReadFailed = false,
     required this.defaultModel,
     required this.themeMode,
     required this.seedColor,
@@ -46,6 +47,11 @@ class SettingsState {
   /// Whether the active API key was seeded from [SettingsNotifier.apiKeyEnvVar]
   /// rather than saved on the device. Such a key lives only for this session.
   final bool apiKeyFromEnvironment;
+
+  /// True when a key is stored on the device but the secure store couldn't be
+  /// read this session (e.g. it was temporarily locked). The key is NOT gone —
+  /// the UI should offer a retry rather than treat it as missing.
+  final bool apiKeyReadFailed;
   final String defaultModel;
   final ThemeMode themeMode;
 
@@ -138,6 +144,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
 
   String? _apiKey;
   bool _apiKeyFromEnv = false;
+  bool _apiKeyReadFailed = false;
   String _defaultModel = 'openai/gpt-4o-mini';
   ThemeMode _themeMode = ThemeMode.system;
   Color _seedColor = AppTheme.defaultSeed;
@@ -177,6 +184,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
         loading: _loading,
         apiKey: _apiKey,
         apiKeyFromEnvironment: _apiKeyFromEnv,
+        apiKeyReadFailed: _apiKeyReadFailed,
         defaultModel: _defaultModel,
         themeMode: _themeMode,
         seedColor: _seedColor,
@@ -205,13 +213,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
   bool get _hasApiKey => _apiKey != null && _apiKey!.isNotEmpty;
 
   Future<void> _load() async {
-    try {
-      _apiKey = await _secureStorage.readApiKey();
-    } catch (_) {
-      _apiKey = null;
-    }
-    // No key saved on the device? On desktop, fall back to the environment.
-    if (!_hasApiKey) _applyEnvFallback();
+    await _readStoredApiKey();
     _defaultModel = _prefs.getString(_kDefaultModel) ?? _defaultModel;
     _downloadDir = _prefs.getString(_kDownloadDir);
     _animateModelIndicator = _prefs.getBool(_kAnimateModelIndicator) ?? false;
@@ -249,6 +251,30 @@ class SettingsNotifier extends Notifier<SettingsState> {
     _emit();
   }
 
+  /// Reads the stored key into [_apiKey], distinguishing "no key saved" (null)
+  /// from "saved key couldn't be unlocked" (read threw). On a read failure the
+  /// key is kept on the device and [_apiKeyReadFailed] is raised so the UI can
+  /// offer a retry instead of re-prompting. The environment fallback applies
+  /// only when the key is genuinely absent — never when a read failed, since a
+  /// saved key may still be there.
+  Future<void> _readStoredApiKey() async {
+    try {
+      _apiKey = await _secureStorage.readApiKey();
+      _apiKeyReadFailed = false;
+    } catch (_) {
+      _apiKey = null;
+      _apiKeyReadFailed = true;
+    }
+    if (!_hasApiKey && !_apiKeyReadFailed) _applyEnvFallback();
+  }
+
+  /// Re-attempts reading the stored key after a prior read failure (the "Retry"
+  /// action in Settings).
+  Future<void> reloadApiKey() async {
+    await _readStoredApiKey();
+    _emit();
+  }
+
   Future<void> setDownloadDir(String? dir) async {
     _downloadDir = (dir != null && dir.isNotEmpty) ? dir : null;
     if (_downloadDir != null) {
@@ -266,12 +292,14 @@ class SettingsNotifier extends Notifier<SettingsState> {
       // environment value.
       _apiKey = trimmed;
       _apiKeyFromEnv = false;
+      _apiKeyReadFailed = false;
       await _secureStorage.writeApiKey(trimmed);
     } else {
       // Saving an empty key clears the stored one; fall back to the env value.
       await _secureStorage.deleteApiKey();
       _apiKey = null;
       _apiKeyFromEnv = false;
+      _apiKeyReadFailed = false;
       _applyEnvFallback();
     }
     _emit();
@@ -281,6 +309,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
     await _secureStorage.deleteApiKey();
     _apiKey = null;
     _apiKeyFromEnv = false;
+    _apiKeyReadFailed = false;
     // Reverting a stored key exposes the environment value again, if present.
     _applyEnvFallback();
     _emit();
