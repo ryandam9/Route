@@ -967,8 +967,8 @@ class _BackgroundPicker extends StatelessWidget {
   final Color? selected;
   final ValueChanged<Color?> onChanged;
 
-  // Shown for the "Default" swatch (matches the light theme's sand surface).
-  static const _sand = Color(0xFFF5EFE0);
+  // Shown for the "Default" swatch (matches the light theme's neutral surface).
+  static const _sand = Color(0xFFF2F3F5);
   static const _presets = <(String, Color?)>[
     ('Default', null),
     ('Snow', Color(0xFFFFFFFF)), // clean neutral — no warm/yellow cast
