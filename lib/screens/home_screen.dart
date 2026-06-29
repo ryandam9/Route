@@ -9,6 +9,7 @@ import '../widgets/conversation_list.dart';
 import '../widgets/dashboard_landing.dart';
 import '../widgets/desktop_sidebar_handle.dart';
 import '../widgets/motion.dart';
+import 'about_screen.dart';
 import 'chat_workspace_screen.dart';
 import 'intro_screen.dart';
 import 'compare_screen.dart';
@@ -247,6 +248,7 @@ class _MobileChatsTab extends ConsumerWidget {
               'compare' => push(const CompareScreen()),
               'help' => push(const HelpScreen()),
               'debug' => push(const DebugScreen()),
+              'about' => push(const AboutScreen()),
               _ => null,
             },
             itemBuilder: (_) => const [
@@ -273,6 +275,15 @@ class _MobileChatsTab extends ConsumerWidget {
                 child: ListTile(
                   leading: Icon(Icons.bug_report_outlined),
                   title: Text('Debug sessions'),
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'about',
+                child: ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('About'),
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                 ),
