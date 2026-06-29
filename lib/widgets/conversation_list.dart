@@ -7,6 +7,7 @@ import '../models/conversation.dart';
 import '../models/openrouter_model.dart';
 import '../providers/chat_provider.dart';
 import '../providers/settings_provider.dart';
+import '../screens/about_screen.dart';
 import '../screens/compare_screen.dart';
 import '../screens/debug_screen.dart';
 import '../screens/help_screen.dart';
@@ -287,6 +288,13 @@ class _ConversationListState extends ConsumerState<ConversationList> {
             selected: _isSelected(DashboardSection.help),
             onTap: () => _navigate(DashboardSection.help,
                 mobile: () => _open(const HelpScreen()))))
+        // About opens as a pushed route on every layout (it isn't a dashboard
+        // section), so it's never marked selected.
+        ..add(() => _NavItem(
+            icon: Icons.info_outline,
+            label: 'About',
+            selected: false,
+            onTap: () => _open(const AboutScreen())))
         ..add(() => const SizedBox(height: 8));
     }
 
