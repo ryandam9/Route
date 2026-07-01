@@ -42,6 +42,20 @@ class _ChatInputState extends ConsumerState<ChatInput> {
   bool _recording = false;
   Timer? _recordTimer;
   Duration _recordElapsed = Duration.zero;
+  bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // The composer surface glows gently while focused (see build).
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (_focused != _focusNode.hasFocus) {
+      setState(() => _focused = _focusNode.hasFocus);
+    }
+  }
 
   @override
   void dispose() {
@@ -267,14 +281,24 @@ class _ChatInputState extends ConsumerState<ChatInput> {
                     : const SizedBox(width: double.infinity),
               ),
             ),
-            DecoratedBox(
+            // While the field has focus the composer lifts subtly and glows in
+            // the accent — the page quietly says "I'm listening".
+            AnimatedContainer(
+              duration: motion.fast,
+              curve: AppTokens.curveSnap,
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                    color: theme.colorScheme.outlineVariant,
+                    color: _focused
+                        ? theme.colorScheme.primary.withValues(alpha: 0.55)
+                        : theme.colorScheme.outlineVariant,
                     width: AppTokens.border),
-                boxShadow: AppTokens.softShadow(theme.colorScheme, level: 2),
+                boxShadow: [
+                  ...AppTokens.softShadow(theme.colorScheme, level: 2),
+                  if (_focused)
+                    ...AppTokens.accentGlow(theme.colorScheme, strength: 0.5),
+                ],
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -534,11 +558,9 @@ class _PulsingDotState extends State<_PulsingDot>
   }
 }
 
-/// The composer send / stop control: a chunky bordered Neo button (thick ink
-/// outline + hard offset shadow via the wrapping [PressableScale]) so it stays
-/// clearly readable on any accent — including dark custom accents where the old
-/// circular filled button blended in. [tonal] gives the Stop state a neutral
-/// surface fill to distinguish it from the accent-filled Send.
+/// The composer send / stop control. Send is an accent-gradient block with a
+/// soft glow — the composer's clear terminus; Stop swaps to a calm neutral
+/// fill so "interrupt" reads differently from "go".
 class _ComposerButton extends StatelessWidget {
   const _ComposerButton({
     super.key,
@@ -556,25 +578,34 @@ class _ComposerButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final bg = tonal ? scheme.surfaceContainerHighest : scheme.primary;
     final fg = tonal ? scheme.onSurface : scheme.onPrimary;
     return Tooltip(
       message: tooltip,
-      child: Material(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppTokens.radiusMd),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onPressed,
-          child: Container(
-            width: 50,
-            height: 46,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTokens.radiusMd),
-              border: Border.all(color: scheme.outline, width: AppTokens.border),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: tonal ? scheme.surfaceContainerHighest : null,
+          gradient: tonal ? null : AppTokens.accentGradient(scheme.primary),
+          borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+          border: tonal
+              ? Border.all(color: scheme.outline, width: AppTokens.border)
+              : null,
+          boxShadow:
+              tonal ? null : AppTokens.accentGlow(scheme, strength: 0.7),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            overlayColor: WidgetStateProperty.all(
+                (tonal ? scheme.primary : scheme.onPrimary)
+                    .withValues(alpha: 0.10)),
+            child: SizedBox(
+              width: 50,
+              height: 46,
+              child: Icon(icon, size: 22, color: fg),
             ),
-            child: Icon(icon, size: 22, color: fg),
           ),
         ),
       ),
