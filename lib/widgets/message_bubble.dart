@@ -135,14 +135,23 @@ class MessageBubble extends ConsumerWidget {
     );
 
     if (!animate) return content;
-    // Gentle one-shot entrance (fade + slide-up) as each message appears.
+    // Gentle one-shot entrance as each message appears: it rises into place
+    // with a soft settle, growing from the corner it "speaks" from.
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOut,
+      duration: AppTokens.durSlow,
+      curve: AppTokens.curveEmphasized,
       builder: (context, t, child) => Opacity(
         opacity: t.clamp(0.0, 1.0),
-        child: Transform.translate(offset: Offset(0, (1 - t) * 8), child: child),
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * 12),
+          child: Transform.scale(
+            scale: 0.98 + 0.02 * t,
+            alignment:
+                _isUser ? Alignment.bottomRight : Alignment.bottomLeft,
+            child: child,
+          ),
+        ),
       ),
       child: content,
     );
@@ -203,14 +212,24 @@ class _UserBubble extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary,
+          // A top-lit accent gradient so the bubble reads dimensional rather
+          // than a flat ink block; the shadow picks up a whisper of the accent.
+          gradient: AppTokens.accentGradient(theme.colorScheme.primary),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
             bottomLeft: Radius.circular(20),
             bottomRight: Radius.circular(6),
           ),
-          boxShadow: AppTokens.softShadow(theme.colorScheme, level: 1),
+          boxShadow: [
+            ...AppTokens.softShadow(theme.colorScheme, level: 1),
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: 0.18),
+              blurRadius: 14,
+              spreadRadius: -6,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: body,
       ),
@@ -864,8 +883,15 @@ class _ModelOrb extends StatelessWidget {
       width: 10,
       height: 10,
       decoration: BoxDecoration(
-        color: accent,
+        gradient: AppTokens.accentGradient(accent),
         shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.45),
+            blurRadius: 6,
+            spreadRadius: 0.5,
+          ),
+        ],
       ),
     );
   }

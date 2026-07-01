@@ -37,29 +37,29 @@ class DashboardLanding extends ConsumerWidget {
           constraints: const BoxConstraints(maxWidth: 520),
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutCubic,
+            duration: AppTokens.durPage,
+            curve: AppTokens.curveEmphasized,
             builder: (context, t, child) => Opacity(
               opacity: t.clamp(0.0, 1.0),
               child: Transform.translate(
-                offset: Offset(0, (1 - t) * 12),
+                offset: Offset(0, (1 - t) * 16),
                 child: child,
               ),
             ),
             child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ClipOval(
-                child: Image.asset(
-                  'assets/icon/app_icon.png',
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Icon(Icons.pets,
-                      size: 64, color: scheme.primary),
+              const _HeroAvatar(),
+              const SizedBox(height: 20),
+              Text(
+                _greeting().toUpperCase(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.4,
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 6),
               Text(
                 'Wombat',
                 style: theme.textTheme.displaySmall?.copyWith(
@@ -138,52 +138,121 @@ class DashboardLanding extends ConsumerWidget {
   }
 }
 
-/// The landing page's primary call-to-action: a large, unmistakable Neo
-/// Brutalist "Start new chat" block that presses flat and lifts on hover.
-class _StartChatCta extends StatelessWidget {
+/// The greeting line above the wordmark, matched to the time of day.
+String _greeting() {
+  final hour = DateTime.now().hour;
+  if (hour < 5) return 'Up late?';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+/// The landing avatar inside a thin accent-gradient ring, casting a soft
+/// accent glow — the page's single point of light.
+class _HeroAvatar extends StatelessWidget {
+  const _HeroAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: AppTokens.accentGradient(scheme.primary),
+        boxShadow: AppTokens.accentGlow(scheme),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: scheme.surfaceContainerLow,
+        ),
+        child: ClipOval(
+          child: Image.asset(
+            'assets/icon/app_icon.png',
+            width: 76,
+            height: 76,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.pets, size: 60, color: scheme.primary),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The landing page's primary call-to-action: a full-width accent-gradient
+/// button with a soft glow. On hover it brightens a touch and its arrow leans
+/// forward; pressing settles it. The one unmissable thing on the page.
+class _StartChatCta extends StatefulWidget {
   const _StartChatCta({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
+  State<_StartChatCta> createState() => _StartChatCtaState();
+}
+
+class _StartChatCtaState extends State<_StartChatCta> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return PressableScale(
-      mode: PressMode.neo,
-      shadowOffset: AppTokens.shadowMd,
-      borderRadius: AppTokens.radiusMd,
-      child: Material(
-        color: scheme.primary,
-        borderRadius: BorderRadius.circular(AppTokens.radiusMd),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTokens.radiusMd),
-              border: Border.all(
-                  color: scheme.outline, width: AppTokens.borderThick),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add, color: scheme.onPrimary, size: 22),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    'Start new chat',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: scheme.onPrimary,
-                      fontWeight: FontWeight.w800,
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: PressableScale(
+        scale: 0.98,
+        child: AnimatedContainer(
+          duration: reduce ? Duration.zero : AppTokens.durFast,
+          curve: AppTokens.curveSnap,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+            gradient: AppTokens.accentGradient(scheme.primary),
+            boxShadow: AppTokens.accentGlow(scheme,
+                strength: _hover && !reduce ? 1.35 : 1),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: widget.onTap,
+              overlayColor: WidgetStateProperty.all(
+                  scheme.onPrimary.withValues(alpha: 0.08)),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Start new chat',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: scheme.onPrimary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    AnimatedSlide(
+                      duration: reduce ? Duration.zero : AppTokens.durFast,
+                      curve: AppTokens.curveSnap,
+                      offset: Offset(_hover && !reduce ? 0.18 : 0, 0),
+                      child: Icon(Icons.arrow_forward_rounded,
+                          color: scheme.onPrimary, size: 22),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

@@ -10,6 +10,7 @@ import '../screens/debug_screen.dart';
 import '../screens/help_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/usage_screen.dart';
+import '../theme/app_tokens.dart';
 import 'chat_input.dart';
 import 'dashboard_landing.dart';
 import 'message_bubble.dart';
@@ -155,19 +156,29 @@ class _RespondingStripState extends ConsumerState<_RespondingStrip> {
               alignment: Alignment.centerLeft,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-                child: Material(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(999),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                    ),
+                    boxShadow:
+                        AppTokens.softShadow(theme.colorScheme, level: 1),
+                  ),
                   child: Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(
+                        SizedBox(
                           width: 12,
                           height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -490,11 +501,19 @@ class _MessageListState extends ConsumerState<_MessageList> {
                 );
               },
               child: _showJumpToLatest
-                  ? FilledButton.tonalIcon(
+                  ? DecoratedBox(
                       key: const ValueKey('jump-to-latest'),
-                      onPressed: _jumpToLatest,
-                      icon: const Icon(Icons.arrow_downward, size: 18),
-                      label: const Text('Jump to latest'),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: AppTokens.softShadow(
+                            Theme.of(context).colorScheme,
+                            level: 2),
+                      ),
+                      child: FilledButton.tonalIcon(
+                        onPressed: _jumpToLatest,
+                        icon: const Icon(Icons.arrow_downward, size: 18),
+                        label: const Text('Jump to latest'),
+                      ),
                     )
                   : const SizedBox.shrink(),
             ),

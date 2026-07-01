@@ -90,11 +90,67 @@ class AppTokens {
   static const Duration durMed = Duration(milliseconds: 240);
   static const Duration durSlow = Duration(milliseconds: 360);
 
+  /// Route-level transitions (page push/pop, hero surfaces settling in).
+  static const Duration durPage = Duration(milliseconds: 420);
+
   // ── Signature motion curves ───────────────────────────────────────────────
-  // Calm, decelerating motion — things ease into place rather than snapping or
-  // bouncing.
-  static const Curve curveOvershoot = Curves.easeOutCubic;
+  // Motion has one voice throughout the app: things *arrive* — a swift start
+  // that eases into a long, settled landing (the Material 3 "emphasized
+  // decelerate" profile) — with an occasional touch of overshoot for playful
+  // moments. Exits are quick and unceremonious.
+  /// The default entrance: swift, then a long soft landing.
+  static const Curve curveEmphasized = Cubic(0.05, 0.7, 0.1, 1.0);
+
+  /// A gentle spring-like settle (≈2% overshoot) for playful entrances such as
+  /// staggered list items and popping badges. Subtle enough to stay calm.
+  static const Curve curveOvershoot = Cubic(0.34, 1.16, 0.64, 1.0);
+
+  /// Quick decelerating snap for small state changes (hover nudges, toggles).
   static const Curve curveSnap = Curves.easeOutCubic;
+
+  /// The exit half of a transition: accelerate away without fuss.
+  static const Curve curveExit = Cubic(0.3, 0.0, 0.8, 0.15);
+
+  // ── Accent glow ────────────────────────────────────────────────────────────
+  /// A soft coloured halo cast by hero elements (the landing avatar, the
+  /// primary CTA, the focused composer). Reads as light emitted by the element
+  /// rather than a drop shadow; slightly stronger in dark theme where glow
+  /// carries more of the depth.
+  static List<BoxShadow> accentGlow(ColorScheme scheme,
+      {Color? color, double strength = 1}) {
+    final dark = scheme.brightness == Brightness.dark;
+    final c = color ?? scheme.primary;
+    return [
+      BoxShadow(
+        color: c.withValues(alpha: (dark ? 0.38 : 0.26) * strength),
+        blurRadius: 28,
+        spreadRadius: -2,
+        offset: const Offset(0, 6),
+      ),
+      BoxShadow(
+        color: c.withValues(alpha: (dark ? 0.22 : 0.12) * strength),
+        blurRadius: 10,
+        offset: const Offset(0, 2),
+      ),
+    ];
+  }
+
+  /// A subtle top-lit gradient for accent-filled surfaces (CTAs, the send
+  /// button, user bubbles): the base colour brightened a touch at the top-left
+  /// and deepened at the bottom-right, so fills feel dimensional instead of
+  /// flat while staying unmistakably [base].
+  static LinearGradient accentGradient(Color base) {
+    final hsl = HSLColor.fromColor(base);
+    Color shift(double dl) => hsl
+        .withLightness((hsl.lightness + dl).clamp(0.0, 1.0))
+        .toColor();
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [shift(0.06), base, shift(-0.055)],
+      stops: const [0.0, 0.55, 1.0],
+    );
+  }
 
   // ── Hover lift (desktop/web) ───────────────────────────────────────────────
   // On hover an interactive surface rises a touch and its soft shadow deepens.

@@ -1,4 +1,3 @@
-import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,26 +5,81 @@ import 'models/app_font.dart';
 import 'providers/settings_provider.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
+import 'theme/app_tokens.dart';
 
-/// Smooth Material-motion page transitions on every platform (pushed routes
-/// fade through + slide along the shared axis).
+/// Wombat's signature route transition: the incoming page fades in while
+/// rising gently and settling from a whisper of scale, as if the surface is
+/// being laid onto the desk; the outgoing page recedes a touch beneath it.
+/// Calmer and more dimensional than a sideways slide, and direction-neutral,
+/// so it reads correctly whether a route is a peer or a detail.
+class GentleRisePageTransitionsBuilder extends PageTransitionsBuilder {
+  const GentleRisePageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    // Entering: a long, soft landing. Reversed (pop): a brisk exit.
+    final enter = CurvedAnimation(
+      parent: animation,
+      curve: AppTokens.curveEmphasized,
+      reverseCurve: AppTokens.curveExit.flipped,
+    );
+    // The fade completes early so the rise/settle plays out on a fully
+    // opaque page instead of a ghost.
+    final fade = CurvedAnimation(
+      parent: animation,
+      curve: const Interval(0.0, 0.45, curve: Curves.easeOut),
+      reverseCurve: const Interval(0.55, 1.0, curve: Curves.easeIn),
+    );
+    // Beneath a covering route the page steps back slightly and dims,
+    // giving the stack real depth without parallax gimmicks.
+    final recede = CurvedAnimation(
+      parent: secondaryAnimation,
+      curve: Curves.easeInOutCubic,
+    );
+
+    return FadeTransition(
+      opacity: fade,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.025),
+          end: Offset.zero,
+        ).animate(enter),
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.985, end: 1).animate(enter),
+          filterQuality: FilterQuality.medium,
+          child: AnimatedBuilder(
+            animation: recede,
+            child: child,
+            builder: (context, child) => Transform.scale(
+              scale: 1 - 0.035 * recede.value,
+              filterQuality:
+                  recede.isDismissed ? null : FilterQuality.medium,
+              child: Opacity(
+                opacity: 1 - 0.20 * recede.value,
+                child: child,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The gentle-rise transition on every platform.
 const _pageTransitions = PageTransitionsTheme(
   builders: {
-    TargetPlatform.android: SharedAxisPageTransitionsBuilder(
-      transitionType: SharedAxisTransitionType.horizontal,
-    ),
-    TargetPlatform.iOS: SharedAxisPageTransitionsBuilder(
-      transitionType: SharedAxisTransitionType.horizontal,
-    ),
-    TargetPlatform.linux: SharedAxisPageTransitionsBuilder(
-      transitionType: SharedAxisTransitionType.horizontal,
-    ),
-    TargetPlatform.macOS: SharedAxisPageTransitionsBuilder(
-      transitionType: SharedAxisTransitionType.horizontal,
-    ),
-    TargetPlatform.windows: SharedAxisPageTransitionsBuilder(
-      transitionType: SharedAxisTransitionType.horizontal,
-    ),
+    TargetPlatform.android: GentleRisePageTransitionsBuilder(),
+    TargetPlatform.iOS: GentleRisePageTransitionsBuilder(),
+    TargetPlatform.linux: GentleRisePageTransitionsBuilder(),
+    TargetPlatform.macOS: GentleRisePageTransitionsBuilder(),
+    TargetPlatform.windows: GentleRisePageTransitionsBuilder(),
   },
 );
 

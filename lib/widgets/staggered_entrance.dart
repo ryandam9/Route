@@ -48,7 +48,7 @@ class StaggeredEntrance extends StatelessWidget {
     final curve = Interval(
       start,
       1.0,
-      curve: bounce ? AppTokens.curveOvershoot : AppTokens.curveSnap,
+      curve: bounce ? AppTokens.curveOvershoot : AppTokens.curveEmphasized,
     );
 
     return TweenAnimationBuilder<double>(
@@ -56,13 +56,17 @@ class StaggeredEntrance extends StatelessWidget {
       duration: AppTokens.durSlow + Duration(milliseconds: 60 * slot),
       curve: curve,
       builder: (context, t, child) {
-        final eased = t.clamp(0.0, 1.0);
+        // Leave the curve unclamped so the overshoot's slight rise-past-rest
+        // reads; only the opacity needs clamping.
         return Opacity(
           // Fade a touch faster than the slide so overshoot never shows a gap.
-          opacity: (eased * 1.4).clamp(0.0, 1.0),
+          opacity: (t * 1.4).clamp(0.0, 1.0),
           child: Transform.translate(
-            offset: Offset(0, (1 - eased) * offsetY),
-            child: child,
+            offset: Offset(0, (1 - t) * offsetY),
+            child: Transform.scale(
+              scale: 0.97 + 0.03 * t,
+              child: child,
+            ),
           ),
         );
       },
